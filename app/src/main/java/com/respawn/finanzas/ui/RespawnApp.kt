@@ -39,6 +39,7 @@ private enum class Section(val label: String) {
     MAIS("Máis")
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RespawnApp(viewModel: MainViewModel) {
     val context = LocalContext.current
@@ -78,7 +79,7 @@ fun RespawnApp(viewModel: MainViewModel) {
                                 style = MaterialTheme.typography.titleMedium
                             )
                             Text(
-                                "ANDROID · 0.2",
+                                "ANDROID · 0.2.1",
                                 fontSize = 11.sp,
                                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = .6f)
                             )
@@ -268,6 +269,10 @@ private fun Dashboard(rows: List<DebtWithBalance>) {
     val open = rows.count { !it.debt.paid }
     val progress = if (total > 0) resolved.toFloat() / total.toFloat() else 0f
 
+    val primaryColor = MaterialTheme.colorScheme.primary
+    val errorColor = MaterialTheme.colorScheme.error
+    val secondaryColor = MaterialTheme.colorScheme.secondary
+
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(14.dp),
@@ -293,10 +298,10 @@ private fun Dashboard(rows: List<DebtWithBalance>) {
             ) {
                 gridItems(
                     listOf(
-                        Triple("TOTAL BASE", total, MaterialTheme.colorScheme.primary),
-                        Triple("SALDO VIVO", live, MaterialTheme.colorScheme.error),
-                        Triple("RESOLTO", resolved, MaterialTheme.colorScheme.secondary),
-                        Triple("PAGOS REAIS", paid, MaterialTheme.colorScheme.secondary)
+                        Triple("TOTAL BASE", total, primaryColor),
+                        Triple("SALDO VIVO", live, errorColor),
+                        Triple("RESOLTO", resolved, secondaryColor),
+                        Triple("PAGOS REAIS", paid, secondaryColor)
                     )
                 ) { (label, value, color) ->
                     KpiCard(label, money(value), color)
