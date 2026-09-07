@@ -2,12 +2,14 @@ package com.respawn.finanzas.data
 
 import android.content.ContentValues
 import android.content.Context
+import android.database.Cursor
 import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteOpenHelper
-import java.util.UUID
+import org.json.JSONArray
+import org.json.JSONObject
 
-class RespawnDbHelper(context: Context) :
-    SQLiteOpenHelper(context, "respawn.db", null, 2) {
+class RespawnDbHelper(private val context: Context) :
+    SQLiteOpenHelper(context, "respawn.db", null, 9) {
 
     override fun onConfigure(db: SQLiteDatabase) {
         super.onConfigure(db)
@@ -15,88 +17,36 @@ class RespawnDbHelper(context: Context) :
     }
 
     override fun onCreate(db: SQLiteDatabase) {
-        createDebtTable(db)
-        createPaymentTable(db)
-        createNoteTable(db)
-        createDocumentTable(db)
-        seedDefaults(db)
+        createCoreTables(db)
+        putState(db, DefaultState.create())
     }
 
     override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {
-        if (oldVersion < 2) {
-            runCatching {
-                db.execSQL("ALTER TABLE debts ADD COLUMN extra_json TEXT NOT NULL DEFAULT '{}'")
-            }
-            runCatching {
-                db.execSQL("ALTER TABLE debts ADD COLUMN trashed INTEGER NOT NULL DEFAULT 0")
-            }
-            createNoteTable(db)
-            createDocumentTable(db)
+        createCoreTables(db)
+        if (!hasState(db)) {
+            val migrated = runCatching { migrateLegacy(db) }.getOrNull()
+            putState(db, migrated ?: DefaultState.create())
         }
     }
 
-    private fun createDebtTable(db: SQLiteDatabase) {
+    override fun onOpen(db: SQLiteDatabase) {
+        super.onOpen(db)
+        createCoreTables(db)
+        if (!hasState(db)) putState(db, DefaultState.create())
+    }
+
+    private fun createCoreTables(db: SQLiteDatabase) {
         db.execSQL(
             """
-            CREATE TABLE IF NOT EXISTS debts (
-                id TEXT PRIMARY KEY NOT NULL,
-                name TEXT NOT NULL,
-                amount_cents INTEGER NOT NULL,
-                category TEXT NOT NULL,
-                type TEXT NOT NULL,
-                paid INTEGER NOT NULL DEFAULT 0,
-                created_at INTEGER NOT NULL,
-                closed_at INTEGER,
-                priority TEXT NOT NULL DEFAULT 'Normal',
-                due_date TEXT NOT NULL DEFAULT '',
-                apr REAL NOT NULL DEFAULT 0,
-                next_action TEXT NOT NULL DEFAULT '',
-                legal_status TEXT NOT NULL DEFAULT 'Por verificar',
-                extra_json TEXT NOT NULL DEFAULT '{}',
-                trashed INTEGER NOT NULL DEFAULT 0
+            CREATE TABLE IF NOT EXISTS state_store(
+                key TEXT PRIMARY KEY NOT NULL,
+                json TEXT NOT NULL
             )
             """.trimIndent()
         )
-    }
-
-    private fun createPaymentTable(db: SQLiteDatabase) {
         db.execSQL(
             """
-            CREATE TABLE IF NOT EXISTS payments (
-                id TEXT PRIMARY KEY NOT NULL,
-                debt_id TEXT NOT NULL,
-                amount_cents INTEGER NOT NULL,
-                date TEXT NOT NULL,
-                note TEXT NOT NULL DEFAULT '',
-                FOREIGN KEY(debt_id) REFERENCES debts(id) ON DELETE CASCADE
-            )
-            """.trimIndent()
-        )
-        db.execSQL("CREATE INDEX IF NOT EXISTS idx_payments_debt ON payments(debt_id)")
-    }
-
-    private fun createNoteTable(db: SQLiteDatabase) {
-        db.execSQL(
-            """
-            CREATE TABLE IF NOT EXISTS general_notes (
-                id TEXT PRIMARY KEY NOT NULL,
-                title TEXT NOT NULL,
-                category TEXT NOT NULL,
-                tag TEXT NOT NULL DEFAULT '',
-                body TEXT NOT NULL DEFAULT '',
-                archived INTEGER NOT NULL DEFAULT 0,
-                created_at INTEGER NOT NULL,
-                updated_at INTEGER NOT NULL,
-                extra_json TEXT NOT NULL DEFAULT '{}'
-            )
-            """.trimIndent()
-        )
-    }
-
-    private fun createDocumentTable(db: SQLiteDatabase) {
-        db.execSQL(
-            """
-            CREATE TABLE IF NOT EXISTS documents (
+            CREATE TABLE IF NOT EXISTS documents(
                 id TEXT PRIMARY KEY NOT NULL,
                 owner_id TEXT NOT NULL,
                 name TEXT NOT NULL,
@@ -108,151 +58,308 @@ class RespawnDbHelper(context: Context) :
             """.trimIndent()
         )
         db.execSQL("CREATE INDEX IF NOT EXISTS idx_documents_owner ON documents(owner_id)")
+        db.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS internal_snapshots(
+                id INTEGER PRIMARY KEY NOT NULL,
+                created_at TEXT NOT NULL,
+                payload TEXT NOT NULL
+            )
+            """.trimIndent()
+        )
+        db.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS undo_store(
+                id INTEGER PRIMARY KEY CHECK(id=1),
+                label TEXT NOT NULL,
+                payload TEXT NOT NULL,
+                created_at TEXT NOT NULL
+            )
+            """.trimIndent()
+        )
     }
 
-    private fun seedDefaults(db: SQLiteDatabase) {
-        val now = System.currentTimeMillis()
-        DefaultDebts.all.forEach { seed ->
-            val values = ContentValues().apply {
-                put("id", UUID.randomUUID().toString())
-                put("name", seed.name)
-                put("amount_cents", seed.amountCents)
-                put("category", seed.category)
-                put("type", seed.type)
-                put("paid", 0)
-                put("created_at", now)
-                putNull("closed_at")
-                put("priority", "Normal")
-                put("due_date", "")
-                put("apr", 0.0)
-                put("next_action", "")
-                put("legal_status", "Por verificar")
-                put("extra_json", "{}")
-                put("trashed", 0)
+    private fun hasState(db: SQLiteDatabase): Boolean =
+        db.rawQuery("SELECT 1 FROM state_store WHERE key='core' LIMIT 1", null)
+            .use { it.moveToFirst() }
+
+    private fun tableExists(db: SQLiteDatabase, name: String): Boolean =
+        db.rawQuery(
+            "SELECT 1 FROM sqlite_master WHERE type='table' AND name=? LIMIT 1",
+            arrayOf(name)
+        ).use { it.moveToFirst() }
+
+    private fun migrateLegacy(db: SQLiteDatabase): CoreState? {
+        if (!tableExists(db, "debts")) return null
+
+        val legacyPayments = mutableMapOf<String, MutableList<Payment>>()
+        if (tableExists(db, "payments")) {
+            db.rawQuery("SELECT id,debt_id,amount_cents,date,note FROM payments", null).use { c ->
+                while (c.moveToNext()) {
+                    val p = Payment(
+                        id = c.getString(0),
+                        date = c.getString(3) ?: "",
+                        amount = c.getLong(2) / 100.0,
+                        note = c.getString(4) ?: "",
+                        createdAt = ""
+                    )
+                    legacyPayments.getOrPut(c.getString(1)) { mutableListOf() }.add(p)
+                }
             }
-            db.insertOrThrow("debts", null, values)
         }
+
+        val active = mutableListOf<Debt>()
+        val trash = mutableListOf<Debt>()
+        db.rawQuery("SELECT * FROM debts", null).use { c ->
+            val idx = { name: String -> c.getColumnIndex(name) }
+            while (c.moveToNext()) {
+                val id = c.stringAt(idx("id")).ifBlank { StateCodec.uid() }
+                val extra = c.stringAt(idx("extra_json"))
+                val fromExtra = if (extra.isNotBlank() && extra != "{}") {
+                    runCatching {
+                        val root = JSONObject()
+                            .put("app", "RESPAWN_DEBEDAS")
+                            .put("version", 17)
+                            .put("debts", JSONArray().put(JSONObject(extra)))
+                        StateCodec.fromJson(root).debts.firstOrNull()
+                    }.getOrNull()
+                } else null
+
+                val createdMs = c.longOrNull(idx("created_at"))
+                val closedMs = c.longOrNull(idx("closed_at"))
+                val base = fromExtra ?: Debt(
+                    id = id,
+                    name = c.stringAt(idx("name")).ifBlank { "Sen nome" },
+                    amount = (c.longOrNull(idx("amount_cents")) ?: 0L) / 100.0,
+                    category = c.stringAt(idx("category")).ifBlank { "Débeda actual" },
+                    type = c.stringAt(idx("type")).ifBlank { "Outro" },
+                    paid = c.intOrZero(idx("paid")) == 1,
+                    createdAt = createdMs?.let { java.time.Instant.ofEpochMilli(it).toString() }
+                        ?: StateCodec.nowIso(),
+                    updatedAt = createdMs?.let { java.time.Instant.ofEpochMilli(it).toString() }
+                        ?: StateCodec.nowIso(),
+                    closedAt = closedMs?.let { java.time.Instant.ofEpochMilli(it).toString() } ?: "",
+                    priority = c.stringAt(idx("priority")).ifBlank { "Normal" },
+                    dueDate = c.stringAt(idx("due_date")),
+                    apr = c.doubleOrZero(idx("apr")),
+                    nextAction = c.stringAt(idx("next_action")),
+                    legalStatus = c.stringAt(idx("legal_status")).ifBlank { "Por verificar" }
+                )
+
+                val merged = if (base.payments.isEmpty() && legacyPayments[id].orEmpty().isNotEmpty())
+                    base.copy(payments = legacyPayments[id].orEmpty())
+                else base
+
+                if (c.intOrZero(idx("trashed")) == 1) {
+                    trash += merged.copy(
+                        trashedAt = merged.trashedAt.ifBlank { StateCodec.nowIso() }
+                    )
+                } else active += merged
+            }
+        }
+
+        val notes = mutableListOf<GeneralNote>()
+        if (tableExists(db, "general_notes")) {
+            db.rawQuery("SELECT * FROM general_notes", null).use { c ->
+                val idx = { name: String -> c.getColumnIndex(name) }
+                while (c.moveToNext()) {
+                    val extra = c.stringAt(idx("extra_json"))
+                    val fromExtra = if (extra.isNotBlank() && extra != "{}") {
+                        runCatching {
+                            val root = JSONObject()
+                                .put("app", "RESPAWN_DEBEDAS")
+                                .put("version", 17)
+                                .put("debts", JSONArray())
+                                .put("generalNotes", JSONArray().put(JSONObject(extra)))
+                            StateCodec.fromJson(root).generalNotes.firstOrNull()
+                        }.getOrNull()
+                    } else null
+
+                    notes += fromExtra ?: GeneralNote(
+                        id = c.stringAt(idx("id")).ifBlank { StateCodec.uid() },
+                        title = c.stringAt(idx("title")),
+                        category = c.stringAt(idx("category")).ifBlank { "Nota xeral" },
+                        tag = c.stringAt(idx("tag")),
+                        body = c.stringAt(idx("body")),
+                        archived = c.intOrZero(idx("archived")) == 1,
+                        createdAt = c.longOrNull(idx("created_at"))
+                            ?.let { java.time.Instant.ofEpochMilli(it).toString() } ?: StateCodec.nowIso(),
+                        updatedAt = c.longOrNull(idx("updated_at"))
+                            ?.let { java.time.Instant.ofEpochMilli(it).toString() } ?: StateCodec.nowIso()
+                    )
+                }
+            }
+        }
+
+        return CoreState(
+            debts = active.ifEmpty { DefaultState.create().debts },
+            trash = trash,
+            generalNotes = notes
+        )
     }
 
-    fun listDebts(): List<Debt> {
-        val result = mutableListOf<Debt>()
+    private fun Cursor.stringAt(index: Int): String =
+        if (index < 0 || isNull(index)) "" else getString(index) ?: ""
+
+    private fun Cursor.longOrNull(index: Int): Long? =
+        if (index < 0 || isNull(index)) null else getLong(index)
+
+    private fun Cursor.intOrZero(index: Int): Int =
+        if (index < 0 || isNull(index)) 0 else getInt(index)
+
+    private fun Cursor.doubleOrZero(index: Int): Double =
+        if (index < 0 || isNull(index)) 0.0 else getDouble(index)
+
+    private fun putState(db: SQLiteDatabase, state: CoreState) {
+        val values = ContentValues().apply {
+            put("key", "core")
+            put("json", StateCodec.encode(state))
+        }
+        db.insertWithOnConflict("state_store", null, values, SQLiteDatabase.CONFLICT_REPLACE)
+    }
+
+    fun loadState(): CoreState {
+        readableDatabase.rawQuery("SELECT json FROM state_store WHERE key='core'", null).use { c ->
+            if (c.moveToFirst()) {
+                return runCatching { StateCodec.decode(c.getString(0)) }
+                    .getOrElse { DefaultState.create() }
+            }
+        }
+        return DefaultState.create().also { saveState(it) }
+    }
+
+    fun saveState(state: CoreState) = putState(writableDatabase, state)
+
+    fun listDocuments(ownerId: String? = null): List<DocumentRecord> {
+        val where = if (ownerId != null) "owner_id=?" else null
+        val args = ownerId?.let { arrayOf(it) }
+        val out = mutableListOf<DocumentRecord>()
         readableDatabase.query(
-            "debts",
-            null,
-            "trashed=0",
-            null,
-            null,
-            null,
-            "paid ASC, category ASC, name COLLATE NOCASE ASC"
+            "documents", null, where, args, null, null, "added_at DESC"
         ).use { c ->
             while (c.moveToNext()) {
-                result += Debt(
+                out += DocumentRecord(
                     id = c.getString(c.getColumnIndexOrThrow("id")),
+                    ownerId = c.getString(c.getColumnIndexOrThrow("owner_id")),
                     name = c.getString(c.getColumnIndexOrThrow("name")),
-                    amountCents = c.getLong(c.getColumnIndexOrThrow("amount_cents")),
-                    category = c.getString(c.getColumnIndexOrThrow("category")),
-                    type = c.getString(c.getColumnIndexOrThrow("type")),
-                    paid = c.getInt(c.getColumnIndexOrThrow("paid")) == 1,
-                    createdAt = c.getLong(c.getColumnIndexOrThrow("created_at")),
-                    closedAt = c.getColumnIndexOrThrow("closed_at").let { i ->
-                        if (c.isNull(i)) null else c.getLong(i)
-                    },
-                    priority = c.getString(c.getColumnIndexOrThrow("priority")),
-                    dueDate = c.getString(c.getColumnIndexOrThrow("due_date")),
-                    apr = c.getDouble(c.getColumnIndexOrThrow("apr")),
-                    nextAction = c.getString(c.getColumnIndexOrThrow("next_action")),
-                    legalStatus = c.getString(c.getColumnIndexOrThrow("legal_status"))
+                    mimeType = c.getString(c.getColumnIndexOrThrow("mime_type")),
+                    sizeBytes = c.getLong(c.getColumnIndexOrThrow("size_bytes")),
+                    addedAt = c.getLong(c.getColumnIndexOrThrow("added_at")),
+                    localPath = c.getString(c.getColumnIndexOrThrow("local_path"))
                 )
             }
         }
-        return result
+        return out
     }
 
-    fun listPayments(): List<Payment> {
-        val result = mutableListOf<Payment>()
-        readableDatabase.query(
-            "payments",
-            null,
-            null,
-            null,
-            null,
-            null,
-            "date DESC"
+    fun insertDocument(doc: DocumentRecord) {
+        val values = ContentValues().apply {
+            put("id", doc.id)
+            put("owner_id", doc.ownerId)
+            put("name", doc.name)
+            put("mime_type", doc.mimeType)
+            put("size_bytes", doc.sizeBytes)
+            put("added_at", doc.addedAt)
+            put("local_path", doc.localPath)
+        }
+        writableDatabase.insertOrThrow("documents", null, values)
+    }
+
+    fun deleteDocument(id: String) {
+        writableDatabase.delete("documents", "id=?", arrayOf(id))
+    }
+
+    fun deleteOwnerDocuments(ownerId: String): List<DocumentRecord> {
+        val docs = listDocuments(ownerId)
+        writableDatabase.delete("documents", "owner_id=?", arrayOf(ownerId))
+        return docs
+    }
+
+    fun saveUndo(label: String, payload: String) {
+        val values = ContentValues().apply {
+            put("id", 1)
+            put("label", label)
+            put("payload", payload)
+            put("created_at", StateCodec.nowIso())
+        }
+        writableDatabase.insertWithOnConflict(
+            "undo_store", null, values, SQLiteDatabase.CONFLICT_REPLACE
+        )
+    }
+
+    fun loadUndo(): Triple<String, String, String>? =
+        readableDatabase.rawQuery(
+            "SELECT label,payload,created_at FROM undo_store WHERE id=1", null
+        ).use { c ->
+            if (c.moveToFirst()) Triple(c.getString(0), c.getString(1), c.getString(2))
+            else null
+        }
+
+    fun clearUndo() {
+        writableDatabase.delete("undo_store", null, null)
+    }
+
+    fun addSnapshot(payload: String) {
+        val id = System.currentTimeMillis()
+        val values = ContentValues().apply {
+            put("id", id)
+            put("created_at", StateCodec.nowIso())
+            put("payload", payload)
+        }
+        val db = writableDatabase
+        db.insert("internal_snapshots", null, values)
+        db.execSQL(
+            """
+            DELETE FROM internal_snapshots
+            WHERE id NOT IN (
+                SELECT id FROM internal_snapshots ORDER BY id DESC LIMIT 12
+            )
+            """.trimIndent()
+        )
+    }
+
+    fun snapshots(): List<InternalSnapshot> {
+        val out = mutableListOf<InternalSnapshot>()
+        readableDatabase.rawQuery(
+            "SELECT id,created_at,payload FROM internal_snapshots ORDER BY id DESC", null
         ).use { c ->
             while (c.moveToNext()) {
-                result += Payment(
-                    id = c.getString(c.getColumnIndexOrThrow("id")),
-                    debtId = c.getString(c.getColumnIndexOrThrow("debt_id")),
-                    amountCents = c.getLong(c.getColumnIndexOrThrow("amount_cents")),
-                    date = c.getString(c.getColumnIndexOrThrow("date")),
-                    note = c.getString(c.getColumnIndexOrThrow("note"))
-                )
+                out += InternalSnapshot(c.getLong(0), c.getString(1), c.getString(2))
             }
         }
-        return result
+        return out
     }
 
-    fun insertDebt(name: String, amountCents: Long, category: String, type: String) {
-        val values = ContentValues().apply {
-            put("id", UUID.randomUUID().toString())
-            put("name", name)
-            put("amount_cents", amountCents)
-            put("category", category)
-            put("type", type)
-            put("paid", 0)
-            put("created_at", System.currentTimeMillis())
-            putNull("closed_at")
-            put("priority", "Normal")
-            put("due_date", "")
-            put("apr", 0.0)
-            put("next_action", "")
-            put("legal_status", "Por verificar")
-            put("extra_json", "{}")
-            put("trashed", 0)
+    fun restoreSnapshot(id: Long): CoreState? {
+        readableDatabase.rawQuery(
+            "SELECT payload FROM internal_snapshots WHERE id=?", arrayOf(id.toString())
+        ).use { c ->
+            if (c.moveToFirst()) {
+                return runCatching { StateCodec.decode(c.getString(0)) }.getOrNull()
+            }
         }
-        writableDatabase.insertOrThrow("debts", null, values)
+        return null
     }
 
-    fun setPaid(debtId: String, paid: Boolean) {
-        val values = ContentValues().apply {
-            put("paid", if (paid) 1 else 0)
-            if (paid) put("closed_at", System.currentTimeMillis()) else putNull("closed_at")
-            put("legal_status", if (paid) "Saldada" else "Por verificar")
-        }
-        writableDatabase.update("debts", values, "id=?", arrayOf(debtId))
-    }
-
-    fun addPayment(debtId: String, amountCents: Long, date: String, note: String) {
+    fun replaceAll(state: CoreState, docs: List<DocumentRecord>) {
         val db = writableDatabase
         db.beginTransaction()
         try {
-            val values = ContentValues().apply {
-                put("id", UUID.randomUUID().toString())
-                put("debt_id", debtId)
-                put("amount_cents", amountCents)
-                put("date", date)
-                put("note", note)
-            }
-            db.insertOrThrow("payments", null, values)
-
-            val base = db.rawQuery(
-                "SELECT amount_cents FROM debts WHERE id=?",
-                arrayOf(debtId)
-            ).use { c -> if (c.moveToFirst()) c.getLong(0) else 0L }
-
-            val paidTotal = db.rawQuery(
-                "SELECT COALESCE(SUM(amount_cents),0) FROM payments WHERE debt_id=?",
-                arrayOf(debtId)
-            ).use { c -> if (c.moveToFirst()) c.getLong(0) else 0L }
-
-            if (base > 0 && paidTotal >= base) {
-                val paidValues = ContentValues().apply {
-                    put("paid", 1)
-                    put("closed_at", System.currentTimeMillis())
-                    put("legal_status", "Saldada")
+            putState(db, state)
+            db.delete("documents", null, null)
+            docs.forEach { doc ->
+                val values = ContentValues().apply {
+                    put("id", doc.id)
+                    put("owner_id", doc.ownerId)
+                    put("name", doc.name)
+                    put("mime_type", doc.mimeType)
+                    put("size_bytes", doc.sizeBytes)
+                    put("added_at", doc.addedAt)
+                    put("local_path", doc.localPath)
                 }
-                db.update("debts", paidValues, "id=?", arrayOf(debtId))
+                db.insertOrThrow("documents", null, values)
             }
+            db.delete("undo_store", null, null)
             db.setTransactionSuccessful()
         } finally {
             db.endTransaction()

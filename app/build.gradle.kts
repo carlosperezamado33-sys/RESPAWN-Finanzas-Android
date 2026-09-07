@@ -11,8 +11,8 @@ android {
         applicationId = "com.respawn.finanzas"
         minSdk = 26
         targetSdk = 37
-        versionCode = 2
-        versionName = "0.2.0"
+        versionCode = 9
+        versionName = "0.9.0"
     }
 
     buildFeatures {
