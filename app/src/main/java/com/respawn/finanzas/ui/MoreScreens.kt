@@ -25,12 +25,13 @@ import java.time.LocalDate
 import java.time.YearMonth
 
 enum class MoreDestination {
-    CALENDAR, CONTROL, EVOLUTION, ARCHIVE, TRASH, HEALTH, SECURITY, INTERNAL_BACKUPS
+    NOTEBOOK, CALENDAR, CONTROL, EVOLUTION, ARCHIVE, TRASH, HEALTH, SECURITY, INTERNAL_BACKUPS
 }
 
 @Composable
 fun MoreScreen(onOpen: (MoreDestination) -> Unit) {
     val cards = listOf(
+        Triple(MoreDestination.NOTEBOOK, "CADERNO", "Notas, contas, trámites, referencias e documentos."),
         Triple(MoreDestination.CALENDAR, "CALENDARIO", "Vencementos, pagamentos e ofertas por data."),
         Triple(MoreDestination.CONTROL, "CONTROL", "CIRBE, ASNEF, BADEXCUG, xudicial e investigación."),
         Triple(MoreDestination.EVOLUTION, "EVOLUCIÓN", "Histórico, patrimonio e resumos mensuais."),
@@ -44,12 +45,28 @@ fun MoreScreen(onOpen: (MoreDestination) -> Unit) {
         contentPadding = PaddingValues(14.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
-        item { SectionTitle("MÁIS FERRAMENTAS", "Funcións de control, histórico, seguridade e mantemento.") }
+        item { SectionTitle("MÁIS", "Ferramentas secundarias, control, histórico e seguridade.") }
+        item {
+            Surface(
+                shape = RoundedCornerShape(14.dp),
+                color = MaterialTheme.colorScheme.primary.copy(alpha = .08f),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(
+                    "RESPAWN ANDROID 0.9.1 · MOBILE UX",
+                    modifier = Modifier.padding(horizontal = 13.dp, vertical = 10.dp),
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
+        }
         items(cards, key = { it.first.name }) { c ->
             RespawnCard(onClick = { onOpen(c.first) }) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(
                         when(c.first) {
+                            MoreDestination.NOTEBOOK -> Icons.Default.MenuBook
                             MoreDestination.CALENDAR -> Icons.Default.CalendarMonth
                             MoreDestination.CONTROL -> Icons.Default.FactCheck
                             MoreDestination.EVOLUTION -> Icons.Default.ShowChart

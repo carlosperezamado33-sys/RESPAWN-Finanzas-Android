@@ -4,10 +4,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.DarkMode
-import androidx.compose.material.icons.filled.LightMode
-import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -42,7 +39,7 @@ private enum class AppView(val label:String){
 fun RespawnApp(viewModel: MainViewModel){
     val ui by viewModel.state.collectAsStateWithLifecycle()
     val context=LocalContext.current
-    val mainTabs=listOf(AppView.PANEL,AppView.TODAY,AppView.DEBTS,AppView.PLAN,AppView.MORE,AppView.NOTEBOOK)
+    val mainTabs=listOf(AppView.PANEL,AppView.TODAY,AppView.DEBTS,AppView.PLAN,AppView.MORE)
     var view by remember{mutableStateOf(AppView.PANEL)}
 
     var selectedDebtId by remember{mutableStateOf<String?>(null)}
@@ -100,12 +97,19 @@ fun RespawnApp(viewModel: MainViewModel){
             }else{
                 Scaffold(
                     topBar={
-                        Column{
+                        Column {
                             TopAppBar(
                                 title={
-                                    Column{
-                                        Text("RESPAWN // FINANZAS",style=MaterialTheme.typography.titleMedium)
-                                        Text("ANDROID · 0.9.0 · PARIDADE WEB",style=MaterialTheme.typography.labelMedium)
+                                    Column {
+                                        Text(
+                                            "RESPAWN",
+                                            style = MaterialTheme.typography.titleMedium
+                                        )
+                                        Text(
+                                            if (view in mainTabs) view.label else "MÁIS · ${view.label}",
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = .58f)
+                                        )
                                     }
                                 },
                                 navigationIcon={
@@ -117,46 +121,96 @@ fun RespawnApp(viewModel: MainViewModel){
                                 },
                                 actions={
                                     if(ui.core.settings.security.lockEnabled){
-                                        IconButton(onClick={locked=true}){Icon(Icons.Default.Lock,"Bloquear")}
+                                        IconButton(onClick={locked=true}){
+                                            Icon(Icons.Default.Lock,"Bloquear")
+                                        }
                                     }
                                     IconButton(onClick={
-                                        viewModel.setTheme(if(ui.core.settings.theme=="ivory")"obsidian" else "ivory")
+                                        viewModel.setTheme(
+                                            if(ui.core.settings.theme=="ivory")"obsidian" else "ivory"
+                                        )
                                     }){
                                         Icon(
-                                            if(ui.core.settings.theme=="ivory")Icons.Default.DarkMode else Icons.Default.LightMode,
+                                            if(ui.core.settings.theme=="ivory")
+                                                Icons.Default.DarkMode
+                                            else
+                                                Icons.Default.LightMode,
                                             "Cambiar tema"
                                         )
                                     }
                                 }
                             )
-                            if(view in mainTabs){
-                                ScrollableTabRow(
-                                    selectedTabIndex=mainTabs.indexOf(view),
-                                    edgePadding=8.dp
-                                ){
-                                    mainTabs.forEach{tab->
-                                        Tab(
-                                            selected=view==tab,
-                                            onClick={view=tab},
-                                            text={Text(tab.label)}
-                                        )
-                                    }
-                                }
-                            }
                             if(ui.undoLabel!=null){
                                 Surface(
-                                    color=MaterialTheme.colorScheme.primary.copy(alpha=.12f),
+                                    color=MaterialTheme.colorScheme.primary.copy(alpha=.10f),
                                     modifier=Modifier.fillMaxWidth()
                                 ){
                                     Row(
-                                        Modifier.padding(horizontal=12.dp,vertical=7.dp),
+                                        Modifier.padding(horizontal=12.dp,vertical=5.dp),
                                         verticalAlignment=Alignment.CenterVertically
                                     ){
-                                        Text("Podes desfacer: ${ui.undoLabel}",Modifier.weight(1f),style=MaterialTheme.typography.labelMedium)
-                                        TextButton(onClick=viewModel::undo){Text("DESFACER")}
+                                        Text(
+                                            "Desfacer: ${ui.undoLabel}",
+                                            Modifier.weight(1f),
+                                            style=MaterialTheme.typography.labelSmall,
+                                            maxLines = 1
+                                        )
+                                        TextButton(
+                                            onClick=viewModel::undo,
+                                            contentPadding = PaddingValues(horizontal = 8.dp)
+                                        ){
+                                            Text("DESFACER")
+                                        }
                                     }
                                 }
                             }
+                        }
+                    },
+                    bottomBar={
+                        NavigationBar {
+                            mainTabs.forEach { tab ->
+                                val selected = when {
+                                    view in mainTabs -> view == tab
+                                    else -> tab == AppView.MORE
+                                }
+                                NavigationBarItem(
+                                    selected = selected,
+                                    onClick = { view = tab },
+                                    icon = {
+                                        Icon(
+                                            when(tab) {
+                                                AppView.PANEL -> Icons.Default.Dashboard
+                                                AppView.TODAY -> Icons.Default.Today
+                                                AppView.DEBTS -> Icons.Default.AccountBalanceWallet
+                                                AppView.PLAN -> Icons.Default.Route
+                                                else -> Icons.Default.MoreHoriz
+                                            },
+                                            contentDescription = tab.label
+                                        )
+                                    },
+                                    label = {
+                                        Text(
+                                            when(tab) {
+                                                AppView.PANEL -> "Panel"
+                                                AppView.TODAY -> "Hoxe"
+                                                AppView.DEBTS -> "Débedas"
+                                                AppView.PLAN -> "Plan"
+                                                else -> "Máis"
+                                            },
+                                            maxLines = 1
+                                        )
+                                    }
+                                )
+                            }
+                        }
+                    },
+                    floatingActionButton={
+                        if(view==AppView.DEBTS){
+                            ExtendedFloatingActionButton(
+                                onClick={showAddDebt=true},
+                                icon={Icon(Icons.Default.Add,null)},
+                                text={Text("ENGADIR")}
+                            )
                         }
                     }
                 ){padding->
@@ -190,7 +244,7 @@ fun RespawnApp(viewModel: MainViewModel){
                                 AppView.DEBTS->DebtsScreen(
                                     state=ui.core,
                                     onDebt={selectedDebtId=it.id;selectedIsTrash=false},
-                                    onAddDebt={showAddDebt=true}
+                                    onTogglePaid={debt,paid->viewModel.setPaid(debt.id,paid)}
                                 )
                                 AppView.PLAN->PlanScreen(
                                     state=ui.core,
@@ -201,6 +255,7 @@ fun RespawnApp(viewModel: MainViewModel){
                                 )
                                 AppView.MORE->MoreScreen{dest->
                                     view=when(dest){
+                                        MoreDestination.NOTEBOOK->AppView.NOTEBOOK
                                         MoreDestination.CALENDAR->AppView.CALENDAR
                                         MoreDestination.CONTROL->AppView.CONTROL
                                         MoreDestination.EVOLUTION->AppView.EVOLUTION

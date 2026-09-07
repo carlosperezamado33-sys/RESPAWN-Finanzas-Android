@@ -109,11 +109,11 @@ fun RespawnCard(
     val base = modifier.fillMaxWidth()
     Surface(
         modifier = if (onClick != null) base.clickable(onClick = onClick) else base,
-        shape = RoundedCornerShape(18.dp),
+        shape = RoundedCornerShape(16.dp),
         tonalElevation = 1.dp
     ) {
         Column(
-            Modifier.padding(15.dp),
+            Modifier.padding(13.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
             content = content
         )

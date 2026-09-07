@@ -1,6 +1,8 @@
 package com.respawn.finanzas.ui
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -362,7 +364,7 @@ private fun RiskDot(priority: String) {
 fun DebtsScreen(
     state: CoreState,
     onDebt: (Debt) -> Unit,
-    onAddDebt: () -> Unit
+    onTogglePaid: (Debt, Boolean) -> Unit
 ) {
     var search by remember { mutableStateOf("") }
     var status by remember { mutableStateOf("Todas") }
@@ -385,77 +387,296 @@ fun DebtsScreen(
             (category == "Todos bloques" || d.category == category) &&
             (legal == "Todo estado legal" || d.legalStatus == legal) &&
             (priority == "Toda prioridade" || d.priority == priority)
-        }.sortedWith(compareBy<Debt> { it.paid }.thenByDescending { FinanceLogic.attackScore(it) })
+        }.sortedWith(
+            compareBy<Debt> { it.paid }
+                .thenByDescending { FinanceLogic.attackScore(it) }
+        )
     }
 
+    val filtersActive =
+        status != "Todas" ||
+        category != "Todos bloques" ||
+        legal != "Todo estado legal" ||
+        priority != "Toda prioridade"
+
     Column(Modifier.fillMaxSize()) {
+        OutlinedTextField(
+            value = search,
+            onValueChange = { search = it },
+            leadingIcon = { Icon(Icons.Default.Search, null) },
+            placeholder = { Text("Buscar débeda...") },
+            trailingIcon = {
+                if (search.isNotBlank()) {
+                    IconButton(onClick = { search = "" }) {
+                        Icon(Icons.Default.Close, "Limpar busca")
+                    }
+                }
+            },
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(start = 14.dp, end = 14.dp, top = 10.dp, bottom = 4.dp),
+            singleLine = true,
+            shape = RoundedCornerShape(16.dp)
+        )
+
         Row(
-            Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .horizontalScroll(rememberScrollState())
+                .padding(horizontal = 14.dp, vertical = 6.dp),
+            horizontalArrangement = Arrangement.spacedBy(7.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            SectionTitle("DÉBEDAS")
-            Spacer(Modifier.weight(1f))
-            Button(onClick = onAddDebt) {
-                Icon(Icons.Default.Add, null); Spacer(Modifier.width(6.dp)); Text("ENGADIR")
+            listOf("Todas", "Pendentes", "Saldadas").forEach { option ->
+                FilterChip(
+                    selected = status == option,
+                    onClick = { status = option },
+                    label = { Text(option) }
+                )
+            }
+
+            CompactFilterMenu(
+                label = if (category == "Todos bloques") "Bloque" else shortBlock(category),
+                selected = category != "Todos bloques",
+                value = category,
+                options = listOf(
+                    "Todos bloques",
+                    "Débeda actual",
+                    "Débeda antiga",
+                    "Recuperacións",
+                    "Pendentes"
+                ),
+                onChange = { category = it }
+            )
+
+            CompactFilterMenu(
+                label = if (legal == "Todo estado legal") "Legal" else shortLegal(legal),
+                selected = legal != "Todo estado legal",
+                value = legal,
+                options = listOf(
+                    "Todo estado legal",
+                    "Por verificar",
+                    "Reclamable / activa",
+                    "Prescrición posible",
+                    "En acordo",
+                    "Xudicializada",
+                    "Saldada"
+                ),
+                onChange = { legal = it }
+            )
+
+            CompactFilterMenu(
+                label = if (priority == "Toda prioridade") "Prioridade" else priority,
+                selected = priority != "Toda prioridade",
+                value = priority,
+                options = listOf(
+                    "Toda prioridade",
+                    "Baixa",
+                    "Normal",
+                    "Alta",
+                    "Crítica"
+                ),
+                onChange = { priority = it }
+            )
+
+            if (filtersActive) {
+                AssistChip(
+                    onClick = {
+                        status = "Todas"
+                        category = "Todos bloques"
+                        legal = "Todo estado legal"
+                        priority = "Toda prioridade"
+                    },
+                    label = { Text("Limpar") },
+                    leadingIcon = {
+                        Icon(
+                            Icons.Default.FilterAltOff,
+                            null,
+                            Modifier.size(17.dp)
+                        )
+                    }
+                )
             }
         }
-        OutlinedTextField(
-            search, { search = it },
-            leadingIcon = { Icon(Icons.Default.Search, null) },
-            label = { Text("Buscar") },
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp),
-            singleLine = true
+
+        Text(
+            "${filtered.size} rexistros",
+            fontSize = 11.sp,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = .58f),
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 2.dp)
         )
+
         LazyColumn(
             Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(14.dp),
-            verticalArrangement = Arrangement.spacedBy(9.dp)
+            contentPadding = PaddingValues(
+                start = 14.dp,
+                end = 14.dp,
+                top = 5.dp,
+                bottom = 92.dp
+            ),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            item {
-                RespawnCard {
-                    ChoiceDropdown("Estado", status, listOf("Todas","Pendentes","Saldadas")) { status = it }
-                    ChoiceDropdown("Bloque", category, listOf("Todos bloques","Débeda actual","Débeda antiga","Recuperacións","Pendentes")) { category = it }
-                    ChoiceDropdown("Estado legal", legal, listOf("Todo estado legal","Por verificar","Reclamable / activa","Prescrición posible","En acordo","Xudicializada","Saldada")) { legal = it }
-                    ChoiceDropdown("Prioridade", priority, listOf("Toda prioridade","Baixa","Normal","Alta","Crítica")) { priority = it }
-                    TextButton(onClick = {
-                        search=""; status="Todas"; category="Todos bloques"; legal="Todo estado legal"; priority="Toda prioridade"
-                    }) { Text("LIMPAR FILTROS") }
-                }
-            }
-            item { Text("${filtered.size} rexistros", fontSize = 11.sp) }
             items(filtered, key = { it.id }) { d ->
-                DebtListCard(d, onDebt)
+                DebtListCard(
+                    d = d,
+                    onDebt = onDebt,
+                    onTogglePaid = { paid -> onTogglePaid(d, paid) }
+                )
             }
         }
     }
 }
 
 @Composable
-fun DebtListCard(d: Debt, onDebt: (Debt) -> Unit) {
+private fun CompactFilterMenu(
+    label: String,
+    selected: Boolean,
+    value: String,
+    options: List<String>,
+    onChange: (String) -> Unit
+) {
+    var open by remember { mutableStateOf(false) }
+    Box {
+        FilterChip(
+            selected = selected,
+            onClick = { open = true },
+            label = { Text(label, maxLines = 1) },
+            trailingIcon = {
+                Icon(
+                    Icons.Default.ArrowDropDown,
+                    null,
+                    Modifier.size(18.dp)
+                )
+            }
+        )
+        DropdownMenu(
+            expanded = open,
+            onDismissRequest = { open = false }
+        ) {
+            options.forEach { option ->
+                DropdownMenuItem(
+                    text = {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            if (option == value) {
+                                Icon(
+                                    Icons.Default.Check,
+                                    null,
+                                    Modifier.size(17.dp),
+                                    tint = MaterialTheme.colorScheme.primary
+                                )
+                                Spacer(Modifier.width(7.dp))
+                            }
+                            Text(option)
+                        }
+                    },
+                    onClick = {
+                        onChange(option)
+                        open = false
+                    }
+                )
+            }
+        }
+    }
+}
+
+private fun shortBlock(value: String): String = when(value) {
+    "Débeda actual" -> "Actual"
+    "Débeda antiga" -> "Antiga"
+    "Recuperacións" -> "Recup."
+    "Pendentes" -> "Pendentes"
+    else -> "Bloque"
+}
+
+private fun shortLegal(value: String): String = when(value) {
+    "Por verificar" -> "Verificar"
+    "Reclamable / activa" -> "Activa"
+    "Prescrición posible" -> "Prescrición"
+    "En acordo" -> "Acordo"
+    "Xudicializada" -> "Xudicial"
+    "Saldada" -> "Saldada"
+    else -> "Legal"
+}
+
+@Composable
+fun DebtListCard(
+    d: Debt,
+    onDebt: (Debt) -> Unit,
+    onTogglePaid: (Boolean) -> Unit
+) {
     val risk = FinanceLogic.riskInfo(d)
-    RespawnCard(onClick = { onDebt(d) }) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
+
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onDebt(d) },
+        shape = RoundedCornerShape(16.dp),
+        tonalElevation = 1.dp
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Checkbox(
+                checked = d.paid,
+                onCheckedChange = onTogglePaid,
+                modifier = Modifier.size(42.dp)
+            )
+
+            Spacer(Modifier.width(3.dp))
+
             Column(Modifier.weight(1f)) {
-                Text(d.name, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                Text(
+                    d.name,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 15.5.sp,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
                 Text(
                     "${d.category} · ${d.type}",
-                    fontSize = 11.sp,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha=.60f)
+                    fontSize = 10.5.sp,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = .58f),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
-                Spacer(Modifier.height(5.dp))
-                Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
+                Spacer(Modifier.height(4.dp))
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(5.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
                     RiskBadge(risk)
-                    if (d.priority != "Normal") Text(d.priority.uppercase(), fontSize = 10.sp, color = MaterialTheme.colorScheme.primary)
-                    if (d.dueDate.isNotBlank()) Text(fmtDate(d.dueDate), fontSize = 10.sp)
+                    if (d.priority != "Normal") {
+                        Text(
+                            d.priority.uppercase(),
+                            fontSize = 9.5.sp,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                    if (d.dueDate.isNotBlank()) {
+                        Text(fmtDate(d.dueDate), fontSize = 9.5.sp)
+                    }
                 }
             }
+
+            Spacer(Modifier.width(8.dp))
+
             Column(horizontalAlignment = Alignment.End) {
                 Text(
                     money(FinanceLogic.liveBalance(d)),
                     fontWeight = FontWeight.Black,
-                    color = if (d.paid) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.error
+                    fontSize = 16.sp,
+                    color = if (d.paid)
+                        MaterialTheme.colorScheme.secondary
+                    else
+                        MaterialTheme.colorScheme.error
                 )
-                Text(if (d.paid) "SALDADA" else d.legalStatus, fontSize = 10.sp, maxLines = 1)
+                Text(
+                    if (d.paid) "SALDADA" else d.legalStatus,
+                    fontSize = 9.5.sp,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = .68f)
+                )
             }
         }
     }
