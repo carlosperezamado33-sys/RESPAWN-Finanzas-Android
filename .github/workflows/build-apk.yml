@@ -1,4 +1,4 @@
-name: Build RESPAWN APK
+name: Build BURACO APK
 
 on:
   workflow_dispatch:
@@ -45,14 +45,14 @@ jobs:
       - name: Prepare APK
         run: |
           mkdir -p dist
-          cp app/build/outputs/apk/debug/app-debug.apk dist/RESPAWN_FINANZAS_0.2.apk
-          sha256sum dist/RESPAWN_FINANZAS_0.2.apk > dist/RESPAWN_FINANZAS_0.2.apk.sha256
+          cp app/build/outputs/apk/debug/app-debug.apk dist/BURACO_0.10.0.apk
+          sha256sum dist/BURACO_0.10.0.apk > dist/BURACO_0.10.0.apk.sha256
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: RESPAWN_FINANZAS_0.2_APK
+          name: BURACO_0.10.0_APK
           path: |
-            dist/RESPAWN_FINANZAS_0.2.apk
-            dist/RESPAWN_FINANZAS_0.2.apk.sha256
+            dist/BURACO_0.10.0.apk
+            dist/BURACO_0.10.0.apk.sha256
           if-no-files-found: error
