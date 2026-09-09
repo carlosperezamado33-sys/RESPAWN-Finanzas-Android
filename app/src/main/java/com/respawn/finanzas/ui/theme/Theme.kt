@@ -1,5 +1,6 @@
 package com.respawn.finanzas.ui.theme
 
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Shapes
 import androidx.compose.material3.Typography
@@ -12,7 +13,6 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.foundation.shape.RoundedCornerShape
 
 enum class RespawnThemeMode { OBSIDIAN, IVORY }
 
@@ -38,26 +38,34 @@ private val Obsidian = darkColorScheme(
     onError = Color(0xFF2D0906)
 )
 
+/*
+ * Ivory 0.10.1: superficies cálidas e opacas, contraste máis suave e
+ * separación por elevación/borde en vez dun fondo gris pesado.
+ */
 private val Ivory = lightColorScheme(
-    primary = Color(0xFF756024),
+    primary = Color(0xFF6C5B27),
     onPrimary = Color(0xFFFFFFFF),
-    primaryContainer = Color(0xFFF1E5BC),
-    onPrimaryContainer = Color(0xFF28200A),
-    secondary = Color(0xFF26785A),
+    primaryContainer = Color(0xFFF2E9CC),
+    onPrimaryContainer = Color(0xFF28210C),
+    secondary = Color(0xFF2B7459),
     onSecondary = Color(0xFFFFFFFF),
-    secondaryContainer = Color(0xFFD6EFE2),
-    onSecondaryContainer = Color(0xFF0D2A1E),
-    tertiary = Color(0xFF9A5A35),
+    secondaryContainer = Color(0xFFDDEEE6),
+    onSecondaryContainer = Color(0xFF123328),
+    tertiary = Color(0xFF8A5B43),
     onTertiary = Color(0xFFFFFFFF),
-    background = Color(0xFFF3F2ED),
-    surface = Color(0xFFFFFEFA),
-    surfaceVariant = Color(0xFFECEAE3),
-    onBackground = Color(0xFF1B1C1D),
-    onSurface = Color(0xFF1B1C1D),
-    onSurfaceVariant = Color(0xFF5E5E59),
-    outline = Color(0xFFC6C3B9),
-    error = Color(0xFFBA1A1A),
-    onError = Color(0xFFFFFFFF)
+    tertiaryContainer = Color(0xFFF3E2D8),
+    onTertiaryContainer = Color(0xFF3B2115),
+    background = Color(0xFFF6F5F1),
+    surface = Color(0xFFFDFCF9),
+    surfaceVariant = Color(0xFFF0EEE8),
+    onBackground = Color(0xFF1C1D1C),
+    onSurface = Color(0xFF1C1D1C),
+    onSurfaceVariant = Color(0xFF66665F),
+    outline = Color(0xFFD2CFC5),
+    error = Color(0xFFB3261E),
+    onError = Color(0xFFFFFFFF),
+    errorContainer = Color(0xFFF8E6E3),
+    onErrorContainer = Color(0xFF5D1713)
 )
 
 private val BuracoTypography = Typography(
