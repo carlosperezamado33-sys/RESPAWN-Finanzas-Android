@@ -3,7 +3,8 @@
     <style name="Theme.RespawnFinanzas" parent="android:style/Theme.Material.NoActionBar">
         <item name="android:fontFamily">sans</item>
         <item name="android:windowLightStatusBar">false</item>
-        <item name="android:navigationBarColor">#090B0D</item>
-        <item name="android:statusBarColor">#090B0D</item>
+        <item name="android:navigationBarColor">#090A0B</item>
+        <item name="android:statusBarColor">#090A0B</item>
+        <item name="android:windowBackground">#090A0B</item>
     </style>
 </resources>
