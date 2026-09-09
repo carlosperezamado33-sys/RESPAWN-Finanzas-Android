@@ -45,14 +45,14 @@ jobs:
       - name: Prepare APK
         run: |
           mkdir -p dist
-          cp app/build/outputs/apk/debug/app-debug.apk dist/BURACO_0.10.0.apk
-          sha256sum dist/BURACO_0.10.0.apk > dist/BURACO_0.10.0.apk.sha256
+          cp app/build/outputs/apk/debug/app-debug.apk dist/BURACO_0.10.1.apk
+          sha256sum dist/BURACO_0.10.1.apk > dist/BURACO_0.10.1.apk.sha256
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: BURACO_0.10.0_APK
+          name: BURACO_0.10.1_APK
           path: |
-            dist/BURACO_0.10.0.apk
-            dist/BURACO_0.10.0.apk.sha256
+            dist/BURACO_0.10.1.apk
+            dist/BURACO_0.10.1.apk.sha256
           if-no-files-found: error
