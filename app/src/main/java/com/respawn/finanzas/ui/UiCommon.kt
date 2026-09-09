@@ -22,6 +22,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -86,30 +87,42 @@ fun openDocument(context: Context, doc: DocumentRecord) {
 @Composable
 fun BuracoBackground(content: @Composable BoxScope.() -> Unit) {
     val scheme = MaterialTheme.colorScheme
+    val isLight = scheme.background.luminance() > .5f
+    val backgroundBrush = if (isLight) {
+        // Ivory: variación mínima e opaca. Evita o efecto gris/fume das capas con alfa.
+        Brush.verticalGradient(
+            colors = listOf(
+                Color(0xFFF8F7F3),
+                Color(0xFFF4F3EF),
+                Color(0xFFF6F5F1)
+            )
+        )
+    } else {
+        Brush.verticalGradient(
+            colors = listOf(
+                scheme.background,
+                scheme.surfaceVariant.copy(alpha = .38f),
+                scheme.background
+            )
+        )
+    }
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(
-                Brush.verticalGradient(
-                    colors = listOf(
-                        scheme.background,
-                        scheme.surfaceVariant.copy(alpha = .38f),
-                        scheme.background
-                    )
-                )
-            ),
+            .background(backgroundBrush),
         content = content
     )
 }
 
 @Composable
 fun SectionTitle(title: String, subtitle: String? = null) {
+    val isLight = MaterialTheme.colorScheme.background.luminance() > .5f
     Row(
         modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Surface(
-            modifier = Modifier.size(width = 4.dp, height = if (subtitle.isNullOrBlank()) 24.dp else 40.dp),
+            modifier = Modifier.size(width = if (isLight) 3.dp else 4.dp, height = if (subtitle.isNullOrBlank()) 24.dp else 40.dp),
             shape = RoundedCornerShape(99.dp),
             color = MaterialTheme.colorScheme.primary
         ) {}
@@ -138,16 +151,20 @@ fun RespawnCard(
     content: @Composable ColumnScope.() -> Unit
 ) {
     val base = modifier.fillMaxWidth()
+    val isLight = MaterialTheme.colorScheme.background.luminance() > .5f
     Surface(
         modifier = if (onClick != null) base.clickable(onClick = onClick) else base,
-        shape = RoundedCornerShape(22.dp),
+        shape = RoundedCornerShape(if (isLight) 24.dp else 22.dp),
         color = MaterialTheme.colorScheme.surface,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = .15f)),
-        shadowElevation = 6.dp,
+        border = BorderStroke(
+            1.dp,
+            MaterialTheme.colorScheme.outline.copy(alpha = if (isLight) .28f else .15f)
+        ),
+        shadowElevation = if (isLight) 3.dp else 6.dp,
         tonalElevation = 0.dp
     ) {
         Column(
-            Modifier.padding(15.dp),
+            Modifier.padding(if (isLight) 16.dp else 15.dp),
             verticalArrangement = Arrangement.spacedBy(9.dp),
             content = content
         )
@@ -156,16 +173,21 @@ fun RespawnCard(
 
 @Composable
 fun Kpi(label: String, value: String, accent: Color, modifier: Modifier = Modifier) {
+    val isLight = MaterialTheme.colorScheme.background.luminance() > .5f
     Surface(
         modifier = modifier.heightIn(min = 106.dp),
-        shape = RoundedCornerShape(22.dp),
+        shape = RoundedCornerShape(if (isLight) 24.dp else 22.dp),
         color = MaterialTheme.colorScheme.surface,
-        border = BorderStroke(1.dp, accent.copy(alpha = .24f)),
-        shadowElevation = 7.dp,
+        border = BorderStroke(
+            1.dp,
+            if (isLight) MaterialTheme.colorScheme.outline.copy(alpha = .34f)
+            else accent.copy(alpha = .24f)
+        ),
+        shadowElevation = if (isLight) 3.dp else 7.dp,
         tonalElevation = 0.dp
     ) {
         Column(
-            Modifier.padding(15.dp),
+            Modifier.padding(if (isLight) 16.dp else 15.dp),
             verticalArrangement = Arrangement.SpaceBetween
         ) {
             Text(
@@ -231,10 +253,11 @@ fun RiskBadge(risk: RiskInfo) {
         "RESOLTA" -> MaterialTheme.colorScheme.secondary
         else -> MaterialTheme.colorScheme.outline
     }
+    val isLight = MaterialTheme.colorScheme.background.luminance() > .5f
     Surface(
         shape = RoundedCornerShape(999.dp),
-        color = color.copy(alpha = .12f),
-        border = BorderStroke(1.dp, color.copy(alpha = .65f))
+        color = color.copy(alpha = if (isLight) .08f else .12f),
+        border = BorderStroke(1.dp, color.copy(alpha = if (isLight) .42f else .65f))
     ) {
         Text(
             risk.label,
@@ -316,12 +339,13 @@ fun DocumentList(
         )
         return
     }
+    val isLight = MaterialTheme.colorScheme.background.luminance() > .5f
     docs.forEach { doc ->
         Surface(
             shape = RoundedCornerShape(18.dp),
             color = MaterialTheme.colorScheme.surface,
-            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = .14f)),
-            shadowElevation = 2.dp,
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = if (isLight) .24f else .14f)),
+            shadowElevation = if (isLight) 1.dp else 2.dp,
             tonalElevation = 0.dp,
             modifier = Modifier.fillMaxWidth()
         ) {
@@ -362,17 +386,18 @@ fun DocumentList(
 @Composable
 fun BusyOverlay(visible: Boolean) {
     if (!visible) return
+    val isLight = MaterialTheme.colorScheme.background.luminance() > .5f
     Box(
         Modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background.copy(alpha = .78f)),
+            .background(MaterialTheme.colorScheme.background.copy(alpha = if (isLight) .88f else .78f)),
         contentAlignment = Alignment.Center
     ) {
         Surface(
             shape = RoundedCornerShape(24.dp),
             color = MaterialTheme.colorScheme.surface,
-            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = .16f)),
-            shadowElevation = 14.dp,
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = if (isLight) .25f else .16f)),
+            shadowElevation = if (isLight) 5.dp else 14.dp,
             tonalElevation = 0.dp
         ) {
             Row(
