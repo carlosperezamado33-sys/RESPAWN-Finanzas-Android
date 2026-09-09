@@ -1,0 +1,60 @@
+name: Release BURACO 0.10.0
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/release-v0.10.0.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Accept Android SDK licenses
+        run: yes | sdkmanager --licenses >/dev/null || true
+
+      - name: Install Android SDK 37
+        run: |
+          sdkmanager "platform-tools" "platforms;android-37.0" "build-tools;37.0.0"
+
+      - name: Set up Gradle 9.6
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "9.6.0"
+
+      - name: Build release APK
+        run: gradle --no-daemon --stacktrace assembleDebug
+
+      - name: Prepare release files
+        run: |
+          mkdir -p dist
+          cp app/build/outputs/apk/debug/app-debug.apk dist/BURACO_0.10.0.apk
+          sha256sum dist/BURACO_0.10.0.apk > dist/BURACO_0.10.0.apk.sha256
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create v0.10.0 \
+            dist/BURACO_0.10.0.apk \
+            dist/BURACO_0.10.0.apk.sha256 \
+            --title "BURACO 0.10.0" \
+            --notes "Redeseño visual premium de RESPAWN-Finanzas-Android baixo a identidade BURACO. Elimínase RESPAWN da cabeceira visible e do nome da app; BURACO pasa a ser o título centrado. Nova icona minimalista de buraco/orbita, tipografía sans máis profesional, paletas Obsidian e Ivory refinadas, fondo con profundidade sutil, cards e KPIs con bordes finos e sombras, navegación inferior elevada e redondeada, FAB premium e diálogos máis coherentes. Mantense intacta a lóxica financeira e os datos existentes."
