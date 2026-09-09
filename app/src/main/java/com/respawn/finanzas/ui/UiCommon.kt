@@ -2,20 +2,22 @@ package com.respawn.finanzas.ui
 
 import android.content.Context
 import android.content.Intent
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.OpenInNew
-import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
@@ -31,7 +33,6 @@ import com.respawn.finanzas.data.RiskInfo
 import java.io.File
 import java.text.DateFormat
 import java.text.NumberFormat
-import java.time.LocalDate
 import java.util.Date
 import java.util.Locale
 import kotlin.math.max
@@ -83,19 +84,49 @@ fun openDocument(context: Context, doc: DocumentRecord) {
 }
 
 @Composable
+fun BuracoBackground(content: @Composable BoxScope.() -> Unit) {
+    val scheme = MaterialTheme.colorScheme
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(
+                Brush.verticalGradient(
+                    colors = listOf(
+                        scheme.background,
+                        scheme.surfaceVariant.copy(alpha = .38f),
+                        scheme.background
+                    )
+                )
+            ),
+        content = content
+    )
+}
+
+@Composable
 fun SectionTitle(title: String, subtitle: String? = null) {
-    Column {
-        Text(
-            title,
-            style = MaterialTheme.typography.headlineSmall,
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Surface(
+            modifier = Modifier.size(width = 4.dp, height = if (subtitle.isNullOrBlank()) 24.dp else 40.dp),
+            shape = RoundedCornerShape(99.dp),
             color = MaterialTheme.colorScheme.primary
-        )
-        if (!subtitle.isNullOrBlank()) {
+        ) {}
+        Spacer(Modifier.width(10.dp))
+        Column {
             Text(
-                subtitle,
-                fontSize = 12.sp,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = .62f)
+                title,
+                style = MaterialTheme.typography.headlineSmall,
+                color = MaterialTheme.colorScheme.onSurface
             )
+            if (!subtitle.isNullOrBlank()) {
+                Text(
+                    subtitle,
+                    fontSize = 12.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
         }
     }
 }
@@ -109,12 +140,15 @@ fun RespawnCard(
     val base = modifier.fillMaxWidth()
     Surface(
         modifier = if (onClick != null) base.clickable(onClick = onClick) else base,
-        shape = RoundedCornerShape(16.dp),
-        tonalElevation = 1.dp
+        shape = RoundedCornerShape(22.dp),
+        color = MaterialTheme.colorScheme.surface,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = .15f)),
+        shadowElevation = 6.dp,
+        tonalElevation = 0.dp
     ) {
         Column(
-            Modifier.padding(13.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
+            Modifier.padding(15.dp),
+            verticalArrangement = Arrangement.spacedBy(9.dp),
             content = content
         )
     }
@@ -123,25 +157,28 @@ fun RespawnCard(
 @Composable
 fun Kpi(label: String, value: String, accent: Color, modifier: Modifier = Modifier) {
     Surface(
-        modifier = modifier.heightIn(min = 98.dp),
-        shape = RoundedCornerShape(17.dp),
-        tonalElevation = 1.dp
+        modifier = modifier.heightIn(min = 106.dp),
+        shape = RoundedCornerShape(22.dp),
+        color = MaterialTheme.colorScheme.surface,
+        border = BorderStroke(1.dp, accent.copy(alpha = .24f)),
+        shadowElevation = 7.dp,
+        tonalElevation = 0.dp
     ) {
         Column(
-            Modifier.padding(13.dp),
+            Modifier.padding(15.dp),
             verticalArrangement = Arrangement.SpaceBetween
         ) {
             Text(
                 label,
                 style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = .62f)
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-            Spacer(Modifier.height(10.dp))
+            Spacer(Modifier.height(12.dp))
             Text(
                 value,
                 color = accent,
-                fontWeight = FontWeight.ExtraBold,
-                fontSize = 23.sp,
+                fontWeight = FontWeight.Black,
+                fontSize = 24.sp,
                 maxLines = 1,
                 softWrap = false,
                 overflow = TextOverflow.Ellipsis
@@ -160,10 +197,14 @@ fun ChoiceDropdown(
 ) {
     var open by remember { mutableStateOf(false) }
     Column(modifier) {
-        Text(label, style = MaterialTheme.typography.labelMedium)
-        Spacer(Modifier.height(4.dp))
+        Text(label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Spacer(Modifier.height(5.dp))
         Box {
-            OutlinedButton(onClick = { open = true }) {
+            OutlinedButton(
+                onClick = { open = true },
+                shape = RoundedCornerShape(14.dp),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = .35f))
+            ) {
                 Text(value, maxLines = 1)
             }
             DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
@@ -192,15 +233,15 @@ fun RiskBadge(risk: RiskInfo) {
     }
     Surface(
         shape = RoundedCornerShape(999.dp),
-        color = color.copy(alpha = .14f),
-        border = androidx.compose.foundation.BorderStroke(1.dp, color)
+        color = color.copy(alpha = .12f),
+        border = BorderStroke(1.dp, color.copy(alpha = .65f))
     ) {
         Text(
             risk.label,
             color = color,
             fontWeight = FontWeight.Bold,
             fontSize = 10.sp,
-            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+            modifier = Modifier.padding(horizontal = 9.dp, vertical = 5.dp)
         )
     }
 }
@@ -211,7 +252,7 @@ fun SimpleLineChart(
     modifier: Modifier = Modifier,
     lineColor: Color = MaterialTheme.colorScheme.primary
 ) {
-    val grid = MaterialTheme.colorScheme.outline.copy(alpha = .3f)
+    val grid = MaterialTheme.colorScheme.outline.copy(alpha = .22f)
     Canvas(modifier = modifier.height(190.dp).fillMaxWidth()) {
         if (values.size < 2) return@Canvas
         val min = values.minOrNull() ?: 0.0
@@ -228,7 +269,7 @@ fun SimpleLineChart(
             val y = size.height - ((v - min) / span).toFloat() * size.height
             if (index == 0) path.moveTo(x, y) else path.lineTo(x, y)
         }
-        drawPath(path, lineColor, style = Stroke(width = 4f, cap = StrokeCap.Round))
+        drawPath(path, lineColor, style = Stroke(width = 4.5f, cap = StrokeCap.Round))
     }
 }
 
@@ -238,7 +279,7 @@ fun SimpleBarChart(
     modifier: Modifier = Modifier,
     barColor: Color = MaterialTheme.colorScheme.secondary
 ) {
-    val grid = MaterialTheme.colorScheme.outline.copy(alpha = .25f)
+    val grid = MaterialTheme.colorScheme.outline.copy(alpha = .18f)
     Canvas(modifier = modifier.height(190.dp).fillMaxWidth()) {
         if (values.isEmpty()) return@Canvas
         val maxV = (values.maxOfOrNull { it.second } ?: 1.0).coerceAtLeast(1.0)
@@ -252,10 +293,11 @@ fun SimpleBarChart(
         values.forEachIndexed { i, pair ->
             val h = (pair.second / maxV).toFloat() * size.height
             val left = gap + i * (barW + gap)
-            drawRect(
-                barColor,
+            drawRoundRect(
+                color = barColor,
                 topLeft = Offset(left, size.height - h),
-                size = androidx.compose.ui.geometry.Size(barW, h)
+                size = androidx.compose.ui.geometry.Size(barW, h),
+                cornerRadius = androidx.compose.ui.geometry.CornerRadius(8f, 8f)
             )
         }
     }
@@ -270,28 +312,38 @@ fun DocumentList(
     if (docs.isEmpty()) {
         Text(
             "Sen documentos anexados.",
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = .55f)
+            color = MaterialTheme.colorScheme.onSurfaceVariant
         )
         return
     }
     docs.forEach { doc ->
         Surface(
-            shape = RoundedCornerShape(13.dp),
-            tonalElevation = 1.dp,
+            shape = RoundedCornerShape(18.dp),
+            color = MaterialTheme.colorScheme.surface,
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = .14f)),
+            shadowElevation = 2.dp,
+            tonalElevation = 0.dp,
             modifier = Modifier.fillMaxWidth()
         ) {
             Row(
-                Modifier.padding(11.dp),
+                Modifier.padding(12.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Icon(Icons.Default.Description, null, tint = MaterialTheme.colorScheme.primary)
-                Spacer(Modifier.width(9.dp))
+                Surface(
+                    shape = RoundedCornerShape(12.dp),
+                    color = MaterialTheme.colorScheme.primaryContainer
+                ) {
+                    Box(Modifier.size(38.dp), contentAlignment = Alignment.Center) {
+                        Icon(Icons.Default.Description, null, tint = MaterialTheme.colorScheme.onPrimaryContainer)
+                    }
+                }
+                Spacer(Modifier.width(10.dp))
                 Column(Modifier.weight(1f)) {
                     Text(doc.name, fontWeight = FontWeight.SemiBold, maxLines = 2)
                     Text(
                         humanSize(doc.sizeBytes),
                         fontSize = 11.sp,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = .55f)
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
                 IconButton(onClick = { onOpen(doc) }) {
@@ -313,17 +365,23 @@ fun BusyOverlay(visible: Boolean) {
     Box(
         Modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background.copy(alpha = .72f)),
+            .background(MaterialTheme.colorScheme.background.copy(alpha = .78f)),
         contentAlignment = Alignment.Center
     ) {
-        Surface(shape = RoundedCornerShape(18.dp), tonalElevation = 6.dp) {
+        Surface(
+            shape = RoundedCornerShape(24.dp),
+            color = MaterialTheme.colorScheme.surface,
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = .16f)),
+            shadowElevation = 14.dp,
+            tonalElevation = 0.dp
+        ) {
             Row(
-                Modifier.padding(horizontal = 20.dp, vertical = 16.dp),
+                Modifier.padding(horizontal = 22.dp, vertical = 18.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 CircularProgressIndicator(Modifier.size(23.dp), strokeWidth = 3.dp)
                 Spacer(Modifier.width(12.dp))
-                Text("RESPAWN traballando...")
+                Text("BURACO traballando...", fontWeight = FontWeight.SemiBold)
             }
         }
     }
