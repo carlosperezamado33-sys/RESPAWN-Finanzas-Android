@@ -5,9 +5,9 @@
         android:allowBackup="true"
         android:fullBackupContent="@xml/backup_rules"
         android:dataExtractionRules="@xml/data_extraction_rules"
-        android:icon="@drawable/ic_respawn"
-        android:label="RESPAWN // Finanzas"
-        android:roundIcon="@drawable/ic_respawn"
+        android:icon="@drawable/ic_buraco"
+        android:label="BURACO"
+        android:roundIcon="@drawable/ic_buraco"
         android:supportsRtl="true"
         android:theme="@style/Theme.RespawnFinanzas">
 
