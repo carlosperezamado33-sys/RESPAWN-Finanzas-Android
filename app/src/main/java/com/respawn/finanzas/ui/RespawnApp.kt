@@ -2,20 +2,22 @@ package com.respawn.finanzas.ui
 
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.respawn.finanzas.data.*
 import com.respawn.finanzas.ui.theme.RespawnTheme
 import com.respawn.finanzas.ui.theme.RespawnThemeMode
-import java.io.File
 
 private enum class AppView(val label:String){
     PANEL("PANEL"),
@@ -38,7 +40,7 @@ private enum class AppView(val label:String){
 @Composable
 fun RespawnApp(viewModel: MainViewModel){
     val ui by viewModel.state.collectAsStateWithLifecycle()
-    val context=LocalContext.current
+    val context=androidx.compose.ui.platform.LocalContext.current
     val mainTabs=listOf(AppView.PANEL,AppView.TODAY,AppView.DEBTS,AppView.PLAN,AppView.MORE)
     var view by remember{mutableStateOf(AppView.PANEL)}
 
@@ -87,7 +89,7 @@ fun RespawnApp(viewModel: MainViewModel){
     }
 
     RespawnTheme(themeMode){
-        Box(Modifier.fillMaxSize()){
+        BuracoBackground {
             if(locked){
                 LockScreen{password->
                     val ok=viewModel.verifyLock(password)
@@ -96,63 +98,79 @@ fun RespawnApp(viewModel: MainViewModel){
                 }
             }else{
                 Scaffold(
+                    containerColor = Color.Transparent,
+                    contentColor = MaterialTheme.colorScheme.onBackground,
                     topBar={
                         Column {
-                            TopAppBar(
-                                title={
-                                    Column {
-                                        Text(
-                                            "RESPAWN",
-                                            style = MaterialTheme.typography.titleMedium
-                                        )
-                                        Text(
-                                            if (view in mainTabs) view.label else "MÁIS · ${view.label}",
-                                            style = MaterialTheme.typography.labelSmall,
-                                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = .58f)
-                                        )
-                                    }
-                                },
-                                navigationIcon={
-                                    if(view !in mainTabs){
-                                        IconButton(onClick={view=AppView.MORE}){
-                                            Icon(Icons.Default.ArrowBack,"Volver")
+                            Surface(
+                                color = MaterialTheme.colorScheme.surface.copy(alpha = .97f),
+                                shadowElevation = 4.dp,
+                                tonalElevation = 0.dp
+                            ) {
+                                CenterAlignedTopAppBar(
+                                    colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
+                                        containerColor = Color.Transparent,
+                                        scrolledContainerColor = Color.Transparent
+                                    ),
+                                    title={
+                                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                            Text(
+                                                "BURACO",
+                                                style = MaterialTheme.typography.titleLarge,
+                                                fontWeight = FontWeight.Black,
+                                                color = MaterialTheme.colorScheme.onSurface
+                                            )
+                                            Text(
+                                                if (view in mainTabs) view.label else "MÁIS · ${view.label}",
+                                                style = MaterialTheme.typography.labelSmall,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
+                                        }
+                                    },
+                                    navigationIcon={
+                                        if(view !in mainTabs){
+                                            IconButton(onClick={view=AppView.MORE}){
+                                                Icon(Icons.Default.ArrowBack,"Volver")
+                                            }
+                                        }
+                                    },
+                                    actions={
+                                        if(ui.core.settings.security.lockEnabled){
+                                            IconButton(onClick={locked=true}){
+                                                Icon(Icons.Default.Lock,"Bloquear")
+                                            }
+                                        }
+                                        IconButton(onClick={
+                                            viewModel.setTheme(
+                                                if(ui.core.settings.theme=="ivory")"obsidian" else "ivory"
+                                            )
+                                        }){
+                                            Icon(
+                                                if(ui.core.settings.theme=="ivory")
+                                                    Icons.Default.DarkMode
+                                                else
+                                                    Icons.Default.LightMode,
+                                                "Cambiar tema"
+                                            )
                                         }
                                     }
-                                },
-                                actions={
-                                    if(ui.core.settings.security.lockEnabled){
-                                        IconButton(onClick={locked=true}){
-                                            Icon(Icons.Default.Lock,"Bloquear")
-                                        }
-                                    }
-                                    IconButton(onClick={
-                                        viewModel.setTheme(
-                                            if(ui.core.settings.theme=="ivory")"obsidian" else "ivory"
-                                        )
-                                    }){
-                                        Icon(
-                                            if(ui.core.settings.theme=="ivory")
-                                                Icons.Default.DarkMode
-                                            else
-                                                Icons.Default.LightMode,
-                                            "Cambiar tema"
-                                        )
-                                    }
-                                }
-                            )
+                                )
+                            }
                             if(ui.undoLabel!=null){
                                 Surface(
-                                    color=MaterialTheme.colorScheme.primary.copy(alpha=.10f),
+                                    color=MaterialTheme.colorScheme.primaryContainer,
+                                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = .18f)),
                                     modifier=Modifier.fillMaxWidth()
                                 ){
                                     Row(
-                                        Modifier.padding(horizontal=12.dp,vertical=5.dp),
+                                        Modifier.padding(horizontal=14.dp,vertical=6.dp),
                                         verticalAlignment=Alignment.CenterVertically
                                     ){
                                         Text(
                                             "Desfacer: ${ui.undoLabel}",
                                             Modifier.weight(1f),
                                             style=MaterialTheme.typography.labelSmall,
+                                            color = MaterialTheme.colorScheme.onPrimaryContainer,
                                             maxLines = 1
                                         )
                                         TextButton(
@@ -167,40 +185,57 @@ fun RespawnApp(viewModel: MainViewModel){
                         }
                     },
                     bottomBar={
-                        NavigationBar {
-                            mainTabs.forEach { tab ->
-                                val selected = when {
-                                    view in mainTabs -> view == tab
-                                    else -> tab == AppView.MORE
-                                }
-                                NavigationBarItem(
-                                    selected = selected,
-                                    onClick = { view = tab },
-                                    icon = {
-                                        Icon(
-                                            when(tab) {
-                                                AppView.PANEL -> Icons.Default.Dashboard
-                                                AppView.TODAY -> Icons.Default.Today
-                                                AppView.DEBTS -> Icons.Default.AccountBalanceWallet
-                                                AppView.PLAN -> Icons.Default.Route
-                                                else -> Icons.Default.MoreHoriz
-                                            },
-                                            contentDescription = tab.label
-                                        )
-                                    },
-                                    label = {
-                                        Text(
-                                            when(tab) {
-                                                AppView.PANEL -> "Panel"
-                                                AppView.TODAY -> "Hoxe"
-                                                AppView.DEBTS -> "Débedas"
-                                                AppView.PLAN -> "Plan"
-                                                else -> "Máis"
-                                            },
-                                            maxLines = 1
-                                        )
+                        Surface(
+                            shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
+                            color = MaterialTheme.colorScheme.surface.copy(alpha = .98f),
+                            shadowElevation = 18.dp,
+                            tonalElevation = 0.dp
+                        ) {
+                            NavigationBar(
+                                containerColor = Color.Transparent,
+                                tonalElevation = 0.dp
+                            ) {
+                                mainTabs.forEach { tab ->
+                                    val selected = when {
+                                        view in mainTabs -> view == tab
+                                        else -> tab == AppView.MORE
                                     }
-                                )
+                                    NavigationBarItem(
+                                        selected = selected,
+                                        onClick = { view = tab },
+                                        colors = NavigationBarItemDefaults.colors(
+                                            selectedIconColor = MaterialTheme.colorScheme.primary,
+                                            selectedTextColor = MaterialTheme.colorScheme.primary,
+                                            indicatorColor = MaterialTheme.colorScheme.primaryContainer,
+                                            unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant
+                                        ),
+                                        icon = {
+                                            Icon(
+                                                when(tab) {
+                                                    AppView.PANEL -> Icons.Default.Dashboard
+                                                    AppView.TODAY -> Icons.Default.Today
+                                                    AppView.DEBTS -> Icons.Default.AccountBalanceWallet
+                                                    AppView.PLAN -> Icons.Default.Route
+                                                    else -> Icons.Default.MoreHoriz
+                                                },
+                                                contentDescription = tab.label
+                                            )
+                                        },
+                                        label = {
+                                            Text(
+                                                when(tab) {
+                                                    AppView.PANEL -> "Panel"
+                                                    AppView.TODAY -> "Hoxe"
+                                                    AppView.DEBTS -> "Débedas"
+                                                    AppView.PLAN -> "Plan"
+                                                    else -> "Máis"
+                                                },
+                                                maxLines = 1
+                                            )
+                                        }
+                                    )
+                                }
                             }
                         }
                     },
@@ -208,8 +243,15 @@ fun RespawnApp(viewModel: MainViewModel){
                         if(view==AppView.DEBTS){
                             ExtendedFloatingActionButton(
                                 onClick={showAddDebt=true},
+                                shape = RoundedCornerShape(20.dp),
+                                containerColor = MaterialTheme.colorScheme.primary,
+                                contentColor = MaterialTheme.colorScheme.onPrimary,
+                                elevation = FloatingActionButtonDefaults.elevation(
+                                    defaultElevation = 10.dp,
+                                    pressedElevation = 14.dp
+                                ),
                                 icon={Icon(Icons.Default.Add,null)},
-                                text={Text("ENGADIR")}
+                                text={Text("ENGADIR", fontWeight = FontWeight.Bold)}
                             )
                         }
                     }
@@ -341,6 +383,7 @@ fun RespawnApp(viewModel: MainViewModel){
             ui.message?.let{msg->
                 AlertDialog(
                     onDismissRequest=viewModel::clearMessage,
+                    shape = RoundedCornerShape(28.dp),
                     title={Text(msg.title)},
                     text={Text(msg.text)},
                     confirmButton={Button(onClick=viewModel::clearMessage){Text("OK")}}
