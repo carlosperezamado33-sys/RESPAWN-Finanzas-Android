@@ -1,0 +1,59 @@
+name: APK Mausoleo
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - claude/apk-review-refactor-2pcfq5
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - uses: android-actions/setup-android@v3
+
+      - name: SDK 35
+        run: sdkmanager "platforms;android-35" "build-tools;35.0.0"
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.14.3"
+
+      # Opcional: se existen os segredos, asina sempre coa mesma chave
+      # para poder actualizar a app sen desinstalala.
+      - name: Chave de sinatura
+        env:
+          KEYSTORE_B64: ${{ secrets.MAUSOLEO_KEYSTORE_B64 }}
+        run: |
+          if [ -n "$KEYSTORE_B64" ]; then
+            echo "$KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/mausoleo.jks"
+            echo "MAUSOLEO_KEYSTORE=$RUNNER_TEMP/mausoleo.jks" >> "$GITHUB_ENV"
+          fi
+
+      - name: Compilar
+        env:
+          MAUSOLEO_KEYSTORE_PASSWORD: ${{ secrets.MAUSOLEO_KEYSTORE_PASSWORD }}
+        run: gradle --no-daemon assembleRelease
+
+      - name: Preparar APK
+        run: |
+          mkdir -p dist
+          cp app/build/outputs/apk/release/app-release.apk dist/Mausoleo.apk
+          sha256sum dist/Mausoleo.apk > dist/Mausoleo.apk.sha256
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Mausoleo-apk
+          path: dist/
+          if-no-files-found: error

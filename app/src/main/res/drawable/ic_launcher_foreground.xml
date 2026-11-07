@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Frontón e tres columnas: un pequeno mausoleo. Debuxado na zona segura (66dp). -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path
+        android:fillColor="#F5F3EE"
+        android:pathData="M54,33 L77,45 L31,45 Z" />
+    <path
+        android:fillColor="#F5F3EE"
+        android:pathData="M33,48h42v3.5h-42z" />
+    <path
+        android:fillColor="#F5F3EE"
+        android:pathData="M37,54.5h5v15h-5zM51.5,54.5h5v15h-5zM66,54.5h5v15h-5z" />
+    <path
+        android:fillColor="#F5F3EE"
+        android:pathData="M31,72.5h46v3.5h-46z" />
+</vector>

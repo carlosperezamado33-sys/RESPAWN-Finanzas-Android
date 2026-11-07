@@ -1,0 +1,1946 @@
+<!doctype html>
+<html lang="gl">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="color-scheme" content="light dark" />
+    <title>Mausoleo</title>
+    <script>
+      try {
+        var t = localStorage.getItem("mausoleo.theme");
+        if (t === "light" || t === "dark") document.documentElement.dataset.theme = t;
+      } catch (e) {}
+    </script>
+    <link rel="stylesheet" href="css/app.css" />
+  </head>
+  <body>
+    <div class="app" id="appRoot">
+      <header class="appbar">
+        <div class="appbar-title">
+          <span class="appbar-brand">Mausoleo</span>
+          <span class="appbar-view" id="viewTitle">Inicio</span>
+        </div>
+        <div class="appbar-actions">
+          <button
+            aria-label="Ocultar ou mostrar importes"
+            aria-pressed="false"
+            class="icon-btn"
+            id="maskBtn"
+            type="button"
+          >
+            <svg aria-hidden="true" class="i" viewbox="0 0 24 24">
+              <path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"></path>
+              <circle cx="12" cy="12" r="2.8"></circle>
+            </svg>
+          </button>
+          <button aria-label="Gardar copia de seguridade" class="icon-btn" id="backupBtn" type="button">
+            <svg aria-hidden="true" class="i" viewbox="0 0 24 24">
+              <path d="M12 4v10.5M7.5 10l4.5 4.5 4.5-4.5M5 19.5h14"></path>
+            </svg>
+          </button>
+        </div>
+      </header>
+      <div class="layout">
+        <main class="main">
+          <section class="view active" data-view="inicio">
+            <div class="home-head">
+              <h1 class="sr-only">Inicio</h1>
+              <button class="month-chip" data-tab="mes" id="homeMonth" type="button">—</button>
+            </div>
+            <section aria-label="Resultado do mes" class="hero" id="homeHero">
+              <span class="hero-label">Ingresos menos gastos do mes</span>
+              <strong class="hero-value secret" id="homeDiff">—</strong>
+              <p class="hero-note" id="homeDiffNote"></p>
+              <dl class="hero-split">
+                <div>
+                  <dt>Ingresos</dt>
+                  <dd class="secret pos" id="homeIn">—</dd>
+                </div>
+                <div>
+                  <dt>Gastos</dt>
+                  <dd class="secret neg" id="homeOut">—</dd>
+                </div>
+              </dl>
+            </section>
+            <div class="quick-add">
+              <button class="btn primary" id="homeAddExpense" type="button">
+                <svg aria-hidden="true" class="i" viewbox="0 0 24 24"><path d="M12 5.5v13M5.5 12h13"></path></svg>Gasto
+              </button>
+              <button class="btn" id="homeAddIncome" type="button">
+                <svg aria-hidden="true" class="i" viewbox="0 0 24 24"><path d="M12 5.5v13M5.5 12h13"></path></svg
+                >Ingreso
+              </button>
+            </div>
+            <div class="stat-row">
+              <button class="stat" data-tab="datos" type="button">
+                <span class="stat-label">Último saldo</span>
+                <strong class="stat-value secret" id="homeBalance">—</strong>
+                <span class="stat-sub" id="homeBalanceDate"></span>
+              </button>
+              <button class="stat" data-tab="actuais" type="button">
+                <span class="stat-label">Débedas abertas</span>
+                <strong class="stat-value secret" id="homeDebt">—</strong>
+                <span class="stat-sub">Importe de referencia</span>
+              </button>
+            </div>
+            <p class="callout warn" hidden="" id="homeGap"></p>
+            <section class="block">
+              <div class="block-head">
+                <h2>Próximos movementos</h2>
+                <button class="link" data-tab="calendario" type="button">Ver 30 días</button>
+              </div>
+              <div id="upcoming"></div>
+            </section>
+            <section class="block">
+              <div class="block-head">
+                <h2>Pendente de facer</h2>
+                <button class="link" data-tab="accions" type="button">Ver todo</button>
+              </div>
+              <div id="homeTasks"></div>
+            </section>
+            <div class="risk-notes" id="riskBanner"></div>
+          </section>
+          <section class="view" data-view="mes">
+            <h1 class="sr-only">O meu mes</h1>
+
+            <div class="month-switcher">
+              <button aria-label="Mes anterior" class="icon-btn" id="monthPrev" type="button">‹</button>
+              <strong id="monthSelected">—</strong>
+              <button aria-label="Mes seguinte" class="icon-btn" id="monthNext" type="button">›</button>
+              <button class="btn sm ghost" id="monthNow" type="button">Hoxe</button>
+            </div>
+            <div aria-label="Ingresos, gastos e diferenza do mes seleccionado" class="month-ledger-totals" role="group">
+              <div class="month-ledger-total income">
+                <span class="month-ledger-label">Ingresos</span
+                ><strong class="month-ledger-number secret" id="monthLedgerIncome">—</strong
+                ><span class="month-ledger-sub" id="monthLedgerIncomeDetail">Cobrados e previstos</span>
+              </div>
+              <div class="month-ledger-total expense">
+                <span class="month-ledger-label">Gastos</span
+                ><strong class="month-ledger-number secret" id="monthLedgerExpense">—</strong
+                ><span class="month-ledger-sub" id="monthLedgerExpenseDetail">Pagados e previstos</span>
+              </div>
+              <div class="month-ledger-total difference" id="monthLedgerDiffCard">
+                <span class="month-ledger-label">Diferenza</span
+                ><strong class="month-ledger-number secret" id="monthLedgerDifference">—</strong
+                ><span class="month-ledger-sub">Ingresos − gastos rexistrados</span>
+              </div>
+            </div>
+            <div class="quick-add">
+              <button class="btn primary" id="monthAddExpense" type="button">
+                <svg aria-hidden="true" class="i" viewbox="0 0 24 24"><path d="M12 5.5v13M5.5 12h13"></path></svg>Gasto
+              </button>
+              <button class="btn" id="monthAddIncome" type="button">
+                <svg aria-hidden="true" class="i" viewbox="0 0 24 24"><path d="M12 5.5v13M5.5 12h13"></path></svg
+                >Ingreso
+              </button>
+            </div>
+            <details class="fold">
+              <summary>Como se calcula este mes</summary>
+              <div class="fold-body" id="monthHelpBody">
+                <p class="month-ledger-help">
+                  Este é o <b>orzamento de consumo do mes</b>, non o extracto bancario. As nóminas cobradas ao final do
+                  mes anterior poden asignarse ao seguinte sen mover a data real do banco. Os gastos sen anotar aínda
+                  faltan no cálculo; non é saldo dispoñible.
+                </p>
+                <div class="note" id="monthBudgetMonthHint">As datas dos cobros mantéñense no calendario bancario.</div>
+              </div>
+            </details>
+
+            <section aria-label="Bloques do mes" id="simpleMonthSection">
+              <div aria-label="Filtrar movementos do mes" class="segmented" id="monthFilter" role="group">
+                <button aria-pressed="true" data-month-filter="all" type="button">Todo</button>
+                <button aria-pressed="false" data-month-filter="pending" type="button">Pendente</button>
+                <button aria-pressed="false" data-month-filter="paid" type="button">Pagado</button>
+              </div>
+              <div class="simple-strip" id="simpleMonthlySummary">
+                Unha liña por grupo. As referencias antigas non se contabilizan ata que as anotes.
+              </div>
+              <div class="simple-groups" id="simpleMonthGroups"></div>
+              <button aria-expanded="false" class="fold-toggle" hidden="" id="monthOthers" type="button">
+                Outras categorías
+              </button>
+              <p class="empty" hidden="" id="monthEmpty">Non hai movementos con este estado.</p>
+              <div class="simple-actions ledger-quick">
+                <button class="btn primary" id="simpleAddCustom" type="button">Novo movemento</button
+                ><button class="btn" data-go="datos" type="button">Ver rexistros</button>
+              </div>
+            </section>
+            <details class="fold">
+              <summary>Reservas de comida e gasolina</summary>
+              <div class="fold-body" id="budgetSlot">
+                <div class="budget-quick">
+                  <label class="field"
+                    ><span>Comida ata o 30/11 (€)</span
+                    ><input
+                      aria-label="Orzamento restante previsto comida"
+                      id="budgetFoodQuick"
+                      inputmode="decimal"
+                      type="text" /></label
+                  ><label class="field"
+                    ><span>Gasolina ata o 30/11 (€)</span
+                    ><input
+                      aria-label="Orzamento restante previsto gasolina"
+                      id="budgetFuelQuick"
+                      inputmode="decimal"
+                      type="text"
+                  /></label>
+                  <div class="budget-mini-note" id="budgetProgressHome">Estimacións; non son gastos cobrados.</div>
+                </div>
+              </div>
+            </details>
+            <details class="fold">
+              <summary>Gráfico e movementos bancarios</summary>
+              <div class="simple-inside">
+                <div class="month-long-kpis">
+                  <div class="panel">
+                    <span class="label">Ingresos pendentes · CaixaBank</span
+                    ><strong class="secret" id="monthIn">—</strong>
+                  </div>
+                  <div class="panel">
+                    <span class="label">Saídas pendentes · CaixaBank</span
+                    ><strong class="secret" id="monthOut">—</strong>
+                  </div>
+                  <div class="panel">
+                    <span class="label">Reservas adicionais restantes</span
+                    ><strong class="secret" id="monthReserve">—</strong>
+                  </div>
+                  <div class="panel main-outcome">
+                    <span class="label">Saldo estimado ao final</span
+                    ><strong class="secret" id="monthProjected">—</strong>
+                  </div>
+                </div>
+                <div class="monthly-grid">
+                  <section class="panel">
+                    <div class="heading">
+                      <h2>Evolución prevista de CaixaBank</h2>
+                      <span class="small muted" id="monthCoverage">Só a partir do saldo anotado</span>
+                    </div>
+                    <div class="month-graph" id="monthTimelineGraph"></div>
+                    <p class="desc" id="monthGraphNote">
+                      Non substitúe o extracto nin ten en conta gastos sen rexistrar.
+                    </p>
+                  </section>
+                  <section class="panel">
+                    <div class="heading">
+                      <h2>Reservas do fogar</h2>
+                      <span class="pill declared">Estimadas</span>
+                    </div>
+                    <div id="monthBudgetDetail"></div>
+                    <p class="desc">
+                      350 € en comida e 120 € en gasolina ata o 30/11. Non se suman como débeda nin como movemento
+                      bancario por si soas.
+                    </p>
+                    <button class="btn sm" data-go="inicio" type="button">Modificar reservas na portada</button>
+                  </section>
+                </div>
+                <section class="panel" style="margin-top: 16px">
+                  <div class="heading">
+                    <h2>Movementos bancarios pola data real</h2>
+                    <span class="small muted" id="monthMovementCount"></span>
+                  </div>
+                  <div class="month-list" id="monthMovements"></div>
+                  <div class="note">
+                    Para evitar dobres contas: os cobros de MyCard rexístranse como cargos na conta. Non anotes outra
+                    vez a compra orixinal se xa está incluída nese cargo. As transferencias Servicash tampouco son
+                    nóminas.
+                  </div>
+                </section>
+              </div>
+            </details>
+            <details class="fold">
+              <summary>Axuda do libro</summary>
+              <div class="fold-body" id="ledgerHelp">
+                <p class="simple-explanation">
+                  Pagado = confirmado no saldo actualizado. Non dupliques gastos xa incluídos en MyCard. «Borrar»
+                  elimina só o movemento do calendario, non modifica a débeda nin o saldo bancario.
+                </p>
+              </div>
+            </details>
+          </section>
+          <section class="view" data-view="calendario">
+            <p class="lead">Cobros e pagamentos por data. O pendente non entra na previsión.</p>
+            <div class="toolrow">
+              <div class="switchline">
+                <input checked="" id="includeDeclared" type="checkbox" /><label for="includeDeclared"
+                  >Incluír importes declarados na previsión</label
+                >
+              </div>
+              <button class="btn primary" id="addEvent">+ Engadir movemento</button>
+            </div>
+            <div class="summarybar">
+              <div class="mini"><span>Cobros previstos</span><strong class="secret" id="calIn">—</strong></div>
+              <div class="mini"><span>Saídas previstas</span><strong class="secret" id="calOut">—</strong></div>
+              <div class="mini">
+                <span>CaixaBank previsto, se se cumpren</span><strong class="secret" id="calFinal">—</strong>
+              </div>
+            </div>
+            <div class="panel">
+              <div class="heading">
+                <h2>Axenda de cobros e pagamentos</h2>
+                <span class="small muted" id="calendarCoverage"></span>
+              </div>
+              <div id="calendarRows"></div>
+            </div>
+          </section>
+          <section class="view" data-view="actuais">
+            <div aria-label="Tipo de débeda" class="segmented debt-switch" role="group">
+              <button aria-pressed="true" data-tab="actuais" type="button">Actuais</button>
+              <button aria-pressed="false" data-tab="debedas" type="button">Antigas</button>
+              <button aria-pressed="false" data-tab="arquivadas" type="button">Arquivadas</button>
+            </div>
+
+            <div class="view-actions"><button class="btn primary" id="addCurrentDebt">Nova débeda</button></div>
+            <div class="current-summary">
+              <div class="current-main">
+                <span class="label">Total aberto</span>
+                <div class="sum-big secret" id="currentTotal">—</div>
+                <p>Actualiza as fichas antes de decidir pagamentos.</p>
+              </div>
+              <details class="r106-breakdown">
+                <summary>Orixe dos importes e fiabilidade</summary>
+                <div class="r106-breakdown-grid">
+                  <div class="current-side">
+                    <div class="label">Con fonte documental / captura</div>
+                    <strong class="secret" id="currentDocumented">—</strong><small>Non é saldo vivo certificado</small>
+                  </div>
+                  <div class="current-side">
+                    <div class="label">Pendentes de contrastar</div>
+                    <strong class="secret" id="currentDeclared">—</strong
+                    ><small>Xa incluídos no total, non se suman outra vez</small>
+                  </div>
+                </div>
+              </details>
+            </div>
+            <details class="guide-details compact-help">
+              <summary>Importante sobre estes totais</summary>
+              <div class="desc">
+                Non sumes estas cifras ás 17 débedas antigas nin as incorpores integramente ao calendario de 30 días. Un
+                préstamo inicial, un cargo pendente da tarxeta e un fraccionamento non son automaticamente saldos
+                esixibles equivalentes.
+              </div>
+            </details>
+            <div class="current-toolbar">
+              <input
+                aria-label="Buscar obrigas"
+                id="currentSearch"
+                placeholder="Buscar entidade, anotación…"
+                type="search"
+              /><select aria-label="Filtrar obrigas" id="currentFilter">
+                <option value="abertas">Sen pechar</option>
+                <option value="all">Todas</option>
+                <option value="documental">Con evidencia documental</option>
+                <option value="declarado">Declaradas</option>
+                <option value="pagada">Pagadas (anotadas)</option>
+                <option value="arquivada">Arquivadas</option></select
+              ><select aria-label="Ordenar obrigas" id="currentSort">
+                <option value="amount_desc">Maior importe</option>
+                <option value="amount_asc">Menor importe</option>
+                <option value="name">Nome A–Z</option>
+                <option value="owner">Titular</option>
+              </select>
+            </div>
+            <div class="current-list" id="currentCards"></div>
+            <p class="debt-module-note" id="currentCount"></p>
+            <details class="guide-details compact-help">
+              <summary>Que vai en débedas actuais?</summary>
+              <div class="desc">
+                As obrigas recentes, AEAT, MyCard, préstamos e financiamentos van aquí. As 17 anotacións comerciais
+                antigas continúan na súa sección de investigación. As obrigas entre particulares terán un apartado
+                separado máis adiante. Unha débeda pagada ou arquivada consérvase no rexistro, sen borrala nin dar por
+                acreditada a súa extinción.
+              </div>
+            </details>
+          </section>
+          <section aria-label="Compromisos persoais" class="view" data-view="morais">
+            <div class="moral-screen">
+              <div class="view-actions">
+                <p class="desc">Compromisos persoais, separados das débedas financeiras.</p>
+                <button class="btn primary" id="addMoral" type="button">Novo compromiso</button>
+              </div>
+              <div aria-label="Resumo dos compromisos" class="moral-metrics" role="group">
+                <div class="moral-metric">
+                  <span>Pendentes</span><strong id="moralOpen">—</strong><small>Pendentes ou en marcha</small>
+                </div>
+                <div class="moral-metric">
+                  <span>Referencias</span><strong class="secret" id="moralKnown">—</strong
+                  ><small>Non se suma ao pasivo bancario</small>
+                </div>
+                <div class="moral-metric">
+                  <span>Sen importe</span><strong id="moralUnknown">—</strong><small>Non equivalen a 0 euros</small>
+                </div>
+                <div class="moral-metric">
+                  <span>Pecharon</span><strong id="moralResolved">—</strong><small>Anotacións persoais</small>
+                </div>
+              </div>
+              <details class="v102-accounting-note">
+                <summary>Que entra no total financeiro?</summary>
+                <p>
+                  Os importes desta pantalla son referencias históricas, non débedas esixibles verificadas. Non se
+                  incorporan automaticamente ao total bancario, á liquidez nin ao cálculo hipotecario. Os compromisos
+                  confirmados poden planificarse por separado.
+                </p>
+              </details>
+              <div class="v102-moral-recover">
+                <span id="moralSeedStatus">Inventario histórico · revisar cifras</span
+                ><button
+                  class="btn sm"
+                  id="restoreMoralSeed"
+                  title="Recuperar fichas ausentes sen substituír as existentes"
+                  type="button"
+                >
+                  Recuperar fichas
+                </button>
+              </div>
+              <div class="moral-tools">
+                <input
+                  aria-label="Buscar compromiso"
+                  autocomplete="off"
+                  id="moralSearch"
+                  placeholder="Buscar unha persoa ou concepto…"
+                /><select aria-label="Filtrar compromisos" id="moralFilter">
+                  <option value="abertas">Abertas</option>
+                  <option value="all">Todas</option>
+                  <option value="pendentes">Sen cifra</option>
+                  <option value="con_importe">Con referencia</option>
+                  <option value="resoltas">Resoltas</option>
+                  <option value="arquivadas">Arquivadas</option></select
+                ><select aria-label="Ordenar compromisos" id="moralSort">
+                  <option value="state">Estado e nome</option>
+                  <option value="name">Nome A–Z</option>
+                  <option value="priority">Referencia máis alta</option>
+                </select>
+              </div>
+              <div aria-live="polite" class="moral-grid" id="moralCards"></div>
+              <div class="moral-footer" id="moralCount">
+                35 referencias históricas; ningunha implica automaticamente un saldo esixible.
+              </div>
+            </div>
+          </section>
+          <section class="view" data-view="debedas">
+            <div aria-label="Tipo de débeda" class="segmented debt-switch" role="group">
+              <button aria-pressed="false" data-tab="actuais" type="button">Actuais</button>
+              <button aria-pressed="true" data-tab="debedas" type="button">Antigas</button>
+              <button aria-pressed="false" data-tab="arquivadas" type="button">
+                Arquivadas <span class="count" id="archiveCountBadge">0</span>
+              </button>
+            </div>
+
+            <div class="view-actions">
+              <p class="desc">17 expedientes por esclarecer. Os importes non son saldos certificados.</p>
+              <button class="btn sm ghost" id="debtPrint">Imprimir</button>
+            </div>
+            <div class="debt-hero">
+              <div class="hero-left">
+                <span class="hero-overline">Total histórico (sen certificar)</span>
+                <div class="hero-amount secret" id="dsHistorical">13.801,71 €</div>
+                <span class="hero-caption">Fichas históricas. Non se suman ás obrigas actuais.</span>
+              </div>
+              <div class="hero-mini">
+                <span>Por esclarecer</span><strong id="dsTotal">17</strong><small>fichas fóra de Arquivadas</small>
+              </div>
+              <div class="hero-mini">
+                <span>Con revisión</span><strong id="dsReviewed">0/17</strong><small>seguimento documental</small>
+              </div>
+            </div>
+            <div class="debt-toolbar">
+              <input
+                aria-label="Buscar débeda antiga"
+                id="debtSearch"
+                placeholder="Buscar empresa ou expediente…"
+                type="search"
+              /><select aria-label="Filtrar estado" id="debtFilter">
+                <option value="all">Calquera revisión</option>
+                <option value="sen_revisar">Por revisar</option>
+                <option value="solicitada">Documentación solicitada</option>
+                <option value="recibida">Documentación recibida</option>
+                <option value="asesoria">En análise profesional</option>
+                <option value="resolto">Resolto con xustificante</option></select
+              ><select aria-label="Filtrar tipo" id="debtType">
+                <option value="all">Todas as clases</option>
+                <option value="Banca">Banca</option>
+                <option value="Microcrédito">Microcrédito</option>
+                <option value="Telecom">Telecom</option></select
+              ><select aria-label="Ordenar débedas" id="debtOrder">
+                <option value="risk_desc">Sinal de reclamación ↓</option>
+                <option value="risk_asc">Sinal de reclamación ↑</option>
+                <option value="amount_desc">Maior importe</option>
+                <option value="amount_asc">Menor importe</option>
+                <option value="name">A–Z</option>
+              </select>
+            </div>
+            <div class="debt-grid" id="debtCards"></div>
+            <p class="debt-module-note" id="debtFilterCount"></p>
+            <details class="guide-details">
+              <summary>Que significa «risco»? · Orientación e prudencia <span>⌄</span></summary>
+              <div class="desc">
+                A etiqueta é unha prioridade de investigación baseada na actividade pública da marca e nos datos
+                dispoñibles, non é unha probabilidade de demanda nin un informe sobre prescrición. «Morta» ou «pagada»
+                son estados <strong>que marcas ti</strong>; non demostran extinción xurídica. Os 17 importes históricos
+                non son saldos vivos acreditados. Ortuño e Sebas continúan separados para un futuro apartado persoal.
+              </div>
+            </details>
+          </section>
+          <section class="view" data-view="arquivadas">
+            <div aria-label="Tipo de débeda" class="segmented debt-switch" role="group">
+              <button aria-pressed="false" data-tab="actuais" type="button">Actuais</button>
+              <button aria-pressed="false" data-tab="debedas" type="button">Antigas</button>
+              <button aria-pressed="true" data-tab="arquivadas" type="button">Arquivadas</button>
+            </div>
+            <p class="desc">Arquivar só oculta a ficha: non a cancela nin acredita que estea pagada.</p>
+            <div class="archive-headline">
+              <div>
+                <span class="label">ACTUAIS ARQUIVADAS</span>
+                <div class="archive-number" id="arcTotal">0</div>
+              </div>
+              <div>
+                <span class="label">IMPORTE HISTÓRICO ARQUIVADO</span>
+                <div class="archive-number secret" id="arcSum">0,00 €</div>
+              </div>
+              <div>
+                <span class="label">ANTIGAS ARQUIVADAS</span>
+                <div class="archive-number" id="arcHistoric">0</div>
+              </div>
+            </div>
+            <div class="debt-toolbar">
+              <input
+                aria-label="Buscar arquivadas"
+                id="archiveSearch"
+                placeholder="Buscar no arquivo…"
+                type="search"
+              /><select aria-label="Ordenar arquivadas" id="archiveOrder">
+                <option value="recent">Última actualización</option>
+                <option value="amount_desc">Maior importe</option>
+                <option value="amount_asc">Menor importe</option>
+                <option value="name">Nome A–Z</option>
+              </select>
+            </div>
+            <div class="debt-grid" id="archiveCards"></div>
+            <p class="debt-module-note">
+              Arquivar só organiza o teu panel. Non acredita cancelación, prescrición nin inexistencia da reclamación.
+            </p>
+          </section>
+          <section class="view" data-view="accions">
+            <p class="lead">Só as actuacións útiles para avanzar agora.</p>
+            <div class="focustip">
+              <strong>Para comezar:</strong> rexistrar saldos, comprobar vencementos e anotar cobros próximos.
+            </div>
+            <div class="toolrow">
+              <h2>Lista de actuacións</h2>
+              <button class="btn primary" id="addTask">+ Nova actuación</button>
+            </div>
+            <div class="panel" id="allTasks"></div>
+          </section>
+          <section class="view" data-view="datos">
+            <p class="lead">Saldos e movementos deste período, sen importar os antigos.</p>
+            <div class="toolrow">
+              <div class="field" style="min-width: min(330px, 100%)">
+                <label for="searchRecords">Buscar</label
+                ><input id="searchRecords" placeholder="Concepto, persoa ou nota" />
+              </div>
+              <div style="display: flex; gap: 8px; align-items: end; flex-wrap: wrap">
+                <button class="btn primary" id="addDataEvent">+ Movemento</button
+                ><button class="btn" id="addDataAccount">+ Saldo</button>
+              </div>
+            </div>
+            <div class="panel">
+              <div class="heading">
+                <h2>Saldos actuais</h2>
+                <span class="small muted">Data e fiabilidade</span>
+              </div>
+              <div id="dataAccounts"></div>
+            </div>
+            <div class="panel" style="margin-top: 16px">
+              <div class="heading">
+                <h2>Cobros e pagamentos</h2>
+                <span class="small muted" id="eventCount"></span>
+              </div>
+              <div class="tablewrap">
+                <table class="ledger">
+                  <thead>
+                    <tr>
+                      <th>Data</th>
+                      <th>Concepto</th>
+                      <th>Persoa</th>
+                      <th>Sentido</th>
+                      <th>Importe</th>
+                      <th>Fiabilidade</th>
+                      <th>Estado</th>
+                      <th></th>
+                    </tr>
+                  </thead>
+                  <tbody id="dataEvents"></tbody>
+                </table>
+              </div>
+            </div>
+          </section>
+          <section aria-labelledby="v10MainTitle" class="view v10-shell" data-view="recuperacion">
+            <div class="v10-heading">
+              <div class="v10-actions">
+                <button class="btn primary" id="v10QuickExpense" type="button">Gasto rápido</button
+                ><button class="btn" id="v10QuickIncome" type="button">Ingreso</button
+                ><button class="btn" id="v10Reconcile" type="button">Conciliar conta</button>
+              </div>
+            </div>
+            <div class="v10-hero">
+              <article class="v10-panel v10-primary">
+                <div class="v10-caps">Saldo rexistrado · Conta principal</div>
+                <div class="v10-big secret" id="v10Balance">—</div>
+                <div class="v10-statline">
+                  <span id="v10BalanceDate">Sen data comprobada</span><span id="v10BalanceAge">—</span>
+                </div>
+                <p class="v10-note">Fotografía do banco, non suma de ingresos nin estimación. Só conta principal.</p>
+              </article>
+              <article class="v10-panel">
+                <div class="v10-caps">Fluxo previsto · Próximos 30 días</div>
+                <div class="v10-big secret" id="v10Forecast">—</div>
+                <div class="v10-statline">
+                  <span>Entradas <strong class="secret" id="v10NextIncome">—</strong></span
+                  ><span>Saídas <strong class="secret" id="v10NextExpense">—</strong></span>
+                </div>
+                <p class="v10-note">
+                  Só eventos pendentes da conta principal coa fiabilidade aceptada. Non inclúe de novo os xa reflectidos
+                  no saldo.
+                </p>
+              </article>
+            </div>
+            <div class="v10-mini-grid">
+              <article class="v10-mini">
+                <span class="v10-caps">Obrigas actuais · seguimento</span
+                ><strong class="secret" id="v10DebtTotal">—</strong
+                ><small>Inclúe contratos e xuros futuros; non acredita capital vivo.</small>
+              </article>
+              <article class="v10-mini">
+                <span class="v10-caps">Pagamentos rexistrados na app</span
+                ><strong class="secret" id="v10PaidDebts">—</strong
+                ><small>Aplicados ás bases de seguimento actuais.</small>
+              </article>
+              <article class="v10-mini">
+                <span class="v10-caps">Aforro para vivenda</span><strong class="secret" id="v10HouseSaved">—</strong
+                ><small>Último saldo específico que introduciches, non estimado.</small>
+              </article>
+              <article class="v10-mini">
+                <span class="v10-caps">Recibos por revisar</span><strong id="v10PendingCount">—</strong
+                ><small>Movementos previstos xa vencidos ou próximos.</small>
+              </article>
+            </div>
+            <div class="v10-duo">
+              <article class="v10-panel">
+                <div class="v10-panel-top">
+                  <h2>Vencementos e movementos próximos</h2>
+                  <button class="btn sm" data-go="calendario">30 días</button>
+                </div>
+                <div class="v10-list" id="v10DueList"></div>
+                <p class="v10-note">
+                  Un movemento real só se marca tras comprobalo no extracto e actualizar o saldo. En móbil, desliza unha
+                  fila cara á dereita para revisar o marcado.
+                </p>
+              </article>
+              <article class="v10-panel">
+                <div class="v10-panel-top">
+                  <h2>Alertas de fiabilidade</h2>
+                  <button class="btn sm" data-go="datos">Revisar rexistros</button>
+                </div>
+                <div class="v10-alerts" id="v10Alerts"></div>
+              </article>
+            </div>
+            <div class="v10-duo">
+              <article class="v10-panel">
+                <div class="v10-panel-top">
+                  <h2>Redución das obrigas actuais</h2>
+                  <button class="btn sm" data-go="actuais">Abrir fichas</button>
+                </div>
+                <div class="v10-bits">
+                  <div class="v10-bit">
+                    <label>Base total das fichas abertas</label><strong class="secret" id="v10DebtBase">—</strong>
+                  </div>
+                  <div class="v10-bit">
+                    <label>Pagos rexistrados desde a base</label><strong class="secret" id="v10DebtPaid">—</strong>
+                  </div>
+                  <div class="v10-bit">
+                    <label>Capital orixinal indicado*</label><strong class="secret" id="v10DebtCapital">—</strong>
+                  </div>
+                  <div class="v10-bit">
+                    <label>Xuros e comisións indicados*</label><strong class="secret" id="v10DebtInterest">—</strong>
+                  </div>
+                </div>
+                <div class="v10-bar"><i id="v10DebtBar" style="width: 0%"></i></div>
+                <p class="v10-note" id="v10DebtCaption">
+                  * Só fichas cun desglose documentado ou declarado. A porcentaxe mide pagamentos rexistrados, non
+                  amortización de capital.
+                </p>
+              </article>
+              <article class="v10-panel">
+                <div class="v10-panel-top">
+                  <h2>Vivenda · obxectivo real</h2>
+                  <button class="btn sm" id="v10HouseEdit">Actualizar datos</button>
+                </div>
+                <div class="v10-bits">
+                  <div class="v10-bit">
+                    <label>Aforrado rexistrado</label><strong class="secret" id="v10HouseBalance">—</strong>
+                  </div>
+                  <div class="v10-bit">
+                    <label>Obxectivo configurado</label><strong class="secret" id="v10HouseGoal">Sen definir</strong>
+                  </div>
+                </div>
+                <div class="v10-bar"><i id="v10HouseBar" style="width: 0%"></i></div>
+                <p class="v10-note" id="v10HouseCaption">
+                  Non se deduce dos ingresos familiares nin se suma automaticamente ao saldo CaixaBank.
+                </p>
+                <div class="v10-list" id="v10HouseHistory"></div>
+              </article>
+            </div>
+            <div class="v10-duo">
+              <article class="v10-panel">
+                <div class="v10-panel-top">
+                  <h2>Movido, previsto e pendente</h2>
+                  <span class="v10-muted">Cifras separadas</span>
+                </div>
+                <div class="v10-bits" id="v10FourLanes"></div>
+                <p class="v10-note">
+                  Non sumes estas catro caixas: os vencementos dun préstamo poden aparecer tamén no calendario bancario.
+                </p>
+              </article>
+              <article class="v10-panel">
+                <div class="v10-panel-top">
+                  <h2>Conciliación bancaria</h2>
+                  <button class="btn sm" id="v10ReconcileAlt">Nova conciliación</button>
+                </div>
+                <div class="v10-list" id="v10ReconHistory"></div>
+                <p class="v10-note">
+                  Introduce o novo saldo comprobado e selecciona só os movementos presentes no extracto. Sen acceso á
+                  banca nin sincronización automática.
+                </p>
+              </article>
+            </div>
+            <article class="v10-panel">
+              <div class="v10-panel-top">
+                <h2>Evolución mensual rexistrada</h2>
+                <span class="v10-muted">6 meses, desde os movementos da app</span>
+              </div>
+              <div class="tablewrap">
+                <table class="v10-table">
+                  <thead>
+                    <tr>
+                      <th>Mes</th>
+                      <th>Cobrado*</th>
+                      <th>Pagado*</th>
+                      <th>Saldo do fluxo*</th>
+                      <th>Previsto sen pagar</th>
+                    </tr>
+                  </thead>
+                  <tbody id="v10MonthRows"></tbody>
+                </table>
+              </div>
+              <p class="v10-note">
+                * Movementos marcados como reflectidos no saldo. Non reconstrúe saldos históricos nin detecta movementos
+                que non se rexistrasen.
+              </p>
+            </article>
+            <article class="v10-panel">
+              <div class="v10-panel-top">
+                <h2>Busca unificada</h2>
+                <span class="v10-muted">Gastos, ingresos e débedas</span>
+              </div>
+              <input
+                aria-label="Buscar en movementos e débedas"
+                autocomplete="off"
+                class="v10-search-input"
+                id="v10Search"
+                placeholder="Ex.: alquiler, préstamo, AEAT, recibo…"
+                type="search"
+              />
+              <div class="v10-search-result" id="v10SearchResults"></div>
+            </article>
+            <section aria-labelledby="bridgeTitle" class="bridge-panel panel" id="ponteAte30">
+              <div class="bridge-head">
+                <div>
+                  <h2 id="bridgeTitle">Ponte ata o 30 de novembro</h2>
+                  <p class="bridge-intro">Cargos de MyCard e fenda estimada antes da nómina.</p>
+                </div>
+                <button class="btn sm" data-go="calendario" type="button">Calendario completo</button>
+              </div>
+              <div aria-live="polite" class="bridge-stats">
+                <div class="bridge-stat">
+                  <div class="label">Saldo real declarado · CaixaBank</div>
+                  <strong class="secret" id="bridgeBank">—</strong
+                  ><small id="bridgeBankSub">Non inclúe o crédito MyCard</small>
+                </div>
+                <div class="bridge-stat">
+                  <div class="label">MyCard · cargos 7–14 nov.</div>
+                  <strong class="secret" id="bridgeMyCard">—</strong
+                  ><small id="bridgeMyCardSub">Segundo captura · previstos</small>
+                </div>
+                <div class="bridge-stat bridge-stat-alert">
+                  <div class="label">Fenda mínima antes da nómina</div>
+                  <strong class="secret" id="bridgeGap">—</strong
+                  ><small id="bridgeGapSub">Só saídas rexistradas; sen alimentación</small>
+                </div>
+              </div>
+
+              <details class="bridge-fold" id="bridgeFold">
+                <summary>Ver cargos do 7–14, reservas, revisión de recibos e Servicash</summary>
+                <div class="bridge-columns">
+                  <div class="bridge-box">
+                    <div class="heading">
+                      <h3>MyCard · vencementos da captura</h3>
+                      <span class="pill declared">Datas previstas</span>
+                    </div>
+                    <div class="bridge-charges" id="bridgeCharges"></div>
+                    <p class="bridge-hint">
+                      «Feito» indica un rexistro confirmado, pero <b>non actualiza automaticamente o saldo bancario</b>.
+                      Cando pase o cargo, edita o movemento e actualiza o saldo real da conta para evitar desaxustes.
+                    </p>
+                  </div>
+                  <div class="bridge-box">
+                    <div class="heading">
+                      <h3>Necesidades básicas pendentes de anotar</h3>
+                      <span class="pill pending" id="bridgeReviewTag">Por revisar</span>
+                    </div>
+                    <p class="bridge-hint">
+                      Introduce só gastos <b>que non estean xa no calendario</b> ata o 29/11. Non se engaden aos
+                      movementos bancarios nin á débeda.
+                    </p>
+                    <div class="bridge-fields">
+                      <label class="field"
+                        ><span>Alimentación (€)</span
+                        ><input
+                          aria-label="Reserva estimada de alimentación"
+                          autocomplete="off"
+                          id="bridgeFood"
+                          inputmode="decimal"
+                          placeholder="Por calcular"
+                          type="text"
+                      /></label>
+                      <label class="field"
+                        ><span>Transporte (€)</span
+                        ><input
+                          aria-label="Reserva estimada de transporte"
+                          autocomplete="off"
+                          id="bridgeTravel"
+                          inputmode="decimal"
+                          placeholder="Por calcular"
+                          type="text"
+                      /></label>
+                      <label class="field"
+                        ><span>Saúde / outros imprescindibles (€)</span
+                        ><input
+                          aria-label="Reserva outros imprescindibles"
+                          autocomplete="off"
+                          id="bridgeOther"
+                          inputmode="decimal"
+                          placeholder="Por calcular"
+                          type="text"
+                      /></label>
+                    </div>
+                    <div class="bridge-result">
+                      <span>Necesidades adicionais estimadas</span
+                      ><strong class="secret" id="bridgeEssentials">Por calcular</strong>
+                    </div>
+                    <div class="bridge-result bridge-result-strong">
+                      <span>Fenda provisional incluíndo necesidades</span
+                      ><strong class="secret" id="bridgeFullGap">—</strong>
+                    </div>
+                    <label class="bridge-check"
+                      ><input id="bridgeBillsReviewed" type="checkbox" /><span
+                        >Revisei os recibos esenciais ata o 30/11.
+                        <small>Isto non significa que estean pagados.</small></span
+                      ></label
+                    >
+                    <p class="bridge-hint" id="bridgeReviewText">
+                      Pendentes de revisión. Se aparece outro recibo, rexístrao en «30 días».
+                    </p>
+                  </div>
+                </div>
+                <div class="bridge-sim-box">
+                  <div class="heading">
+                    <h3>Simulador Servicash · crédito → conta</h3>
+                    <span class="pill pending">Só simulación</span>
+                  </div>
+                  <div class="bridge-sim-grid">
+                    <label class="field"
+                      ><span>Importe hipotético (€)</span
+                      ><input autocomplete="off" id="bridgeTransfer" inputmode="decimal" type="text" value="100,00"
+                    /></label>
+                    <label class="field"
+                      ><span>Comisión de referencia (%)</span
+                      ><input autocomplete="off" id="bridgeFeeRate" inputmode="decimal" type="text" value="4,50"
+                    /></label>
+                    <label class="field"
+                      ><span>Mínimo por operación (€)</span
+                      ><input autocomplete="off" id="bridgeFeeMin" inputmode="decimal" type="text" value="4,00"
+                    /></label>
+                    <div class="bridge-fee-result">
+                      <span>Comisión estimada</span><strong class="secret" id="bridgeFee">4,50 €</strong
+                      ><small id="bridgeFeeTotal">100 € dispostos + 4,50 € de comisión</small>
+                    </div>
+                  </div>
+                  <p class="bridge-hint">
+                    <b>Non se efectúa ningunha transferencia.</b> A simulación non altera saldos, nóminas, débedas nin
+                    calendario. O banco pode cobrar a comisión na tarxeta, descontala do abono ou aplicar condicións
+                    específicas: consulta o xustificante antes de confirmar. Tampouco se inclúen posibles xuros.
+                    <a
+                      href="https://www.caixabank.es/particular/tarjetas/servicash.html"
+                      rel="noopener noreferrer"
+                      target="_blank"
+                      >Tarifa xeral publicada por CaixaBank</a
+                    >.
+                  </p>
+                </div>
+                <details class="guide-details bridge-extra">
+                  <summary>Como interpretar a fenda e evitar contar dúas veces</summary>
+                  <div class="desc">
+                    O indicador calcula as saídas pendentes asignadas a CaixaBank antes do 30/11, menos os ingresos
+                    previstos antes desa data e o saldo rexistrado. Non é unha orde de trasladar diñeiro da tarxeta.
+                    Pode cambiar se hai cargos adicionais, se se modifica o saldo ou se se paga un recibo. Os importes
+                    adicionais de necesidades son estimacións independentes e non se engaden automaticamente á axenda.
+                    Os cargos de MyCard xa poden estar incluídos no crédito utilizado: non se suman outra vez á ficha de
+                    débeda. Para manter unha previsión útil, concilia os movementos co saldo real periodicamente.
+                  </div>
+                </details>
+              </details>
+            </section>
+          </section>
+          <dialog class="v10-dialog" id="v10QuickDialog">
+            <div class="v10-dhead">
+              <div>
+                <div class="v10-eyebrow"></div>
+                <h2 id="v10QuickTitle">Anotar movemento</h2>
+              </div>
+              <button aria-label="Pechar" class="btn sm" data-v10-close="v10QuickDialog" type="button">×</button>
+            </div>
+            <div class="v10-dbody">
+              <form class="v10-form" id="v10QuickForm">
+                <label
+                  >Concepto<input
+                    autocomplete="off"
+                    id="v10QuickName"
+                    list="v10Concepts"
+                    maxlength="100"
+                    name="name"
+                    placeholder="Ex.: Supermercado"
+                    required="" /></label
+                ><datalist id="v10Concepts"></datalist>
+                <div class="v10-form-row">
+                  <label>Importe (€)<input inputmode="decimal" name="amount" placeholder="12,50" required="" /></label
+                  ><label>Data no banco<input name="date" required="" type="date" /></label>
+                </div>
+                <div class="v10-form-row">
+                  <label
+                    >Tipo<select name="type">
+                      <option value="saida">Saída</option>
+                      <option value="entrada">Entrada</option>
+                    </select></label
+                  ><label
+                    >Conta<select name="accountSource">
+                      <option value="caixabank">CaixaBank/imagin</option>
+                      <option value="abanca">ABANCA</option>
+                      <option value="por_confirmar">Por confirmar</option>
+                    </select></label
+                  >
+                </div>
+                <div class="v10-form-row">
+                  <label
+                    >Grupo<select name="group">
+                      <option value="esencial">Esencial</option>
+                      <option value="financeiro">Débeda / Financeiro</option>
+                      <option value="administrativo">AEAT / Xudicial</option>
+                      <option value="outro">Outro</option>
+                    </select></label
+                  ><label
+                    >Fiabilidade<select name="trust">
+                      <option value="declarado">Declarado</option>
+                      <option value="acreditado">Acreditado</option>
+                      <option value="pendente">Pendente</option>
+                    </select></label
+                  >
+                </div>
+                <p class="v10-note">
+                  Gárdase como <strong>previsto / aínda non reflectido no saldo</strong>. Se xa está no banco, concíliao
+                  despois para non duplicar importes.
+                </p>
+                <div class="v10-foot">
+                  <button class="btn" data-v10-close="v10QuickDialog" type="button">Cancelar</button
+                  ><button class="btn primary" type="submit">Gardar movemento</button>
+                </div>
+              </form>
+            </div>
+          </dialog>
+          <dialog class="v10-dialog" id="v10ReconDialog">
+            <div class="v10-dhead">
+              <div>
+                <div class="v10-eyebrow"></div>
+                <h2>Comprobar contra o banco</h2>
+              </div>
+              <button aria-label="Pechar" class="btn sm" data-v10-close="v10ReconDialog" type="button">×</button>
+            </div>
+            <div class="v10-dbody">
+              <form class="v10-form" id="v10ReconForm">
+                <label>Conta<select id="v10ReconAccount" name="accountId" required=""></select></label>
+                <div class="v10-form-row">
+                  <label
+                    >Saldo no extracto (€)<input
+                      inputmode="decimal"
+                      name="amount"
+                      placeholder="0,00"
+                      required="" /></label
+                  ><label>Data do saldo<input name="date" required="" type="date" /></label>
+                </div>
+                <p class="v10-note" id="v10ReconInfo">Marcar só as operacións que aparecen no extracto.</p>
+                <label>Movementos xa reflectidos no novo saldo (selección manual)</label>
+                <div class="v10-checks" id="v10ReconChoices"></div>
+                <label
+                  >Referencia / nota (opcional)<textarea
+                    maxlength="300"
+                    name="note"
+                    placeholder="Ex.: saldo revisado na aplicación do banco"
+                    rows="2"
+                  ></textarea>
+                </label>
+                <div class="v10-foot">
+                  <button class="btn" data-v10-close="v10ReconDialog" type="button">Cancelar</button
+                  ><button class="btn primary" type="submit">Confirmar conciliación</button>
+                </div>
+              </form>
+            </div>
+          </dialog>
+          <dialog class="v10-dialog" id="v10HouseDialog">
+            <div class="v10-dhead">
+              <div>
+                <div class="v10-eyebrow"></div>
+                <h2>Aforro comprobado</h2>
+              </div>
+              <button aria-label="Pechar" class="btn sm" data-v10-close="v10HouseDialog" type="button">×</button>
+            </div>
+            <div class="v10-dbody">
+              <form class="v10-form" id="v10HouseForm">
+                <label
+                  >Meta de aforro (€) · opcional<input inputmode="decimal" name="goal" placeholder="Sen definir aínda"
+                /></label>
+                <div class="v10-form-row">
+                  <label
+                    >Saldo reservado real (€) · opcional<input
+                      inputmode="decimal"
+                      name="balance"
+                      placeholder="Deixa baleiro se non hai saldo novo" /></label
+                  ><label>Data do saldo<input name="date" required="" type="date" /></label>
+                </div>
+                <label
+                  >Fonte<select name="trust">
+                    <option value="acreditado">Comprobado no banco</option>
+                    <option value="declarado">Declarado por nós</option>
+                  </select></label
+                ><label
+                  >Nota / orixe<input maxlength="200" name="note" placeholder="Ex.: conta de aforro, saldo separado"
+                /></label>
+                <p class="v10-note">
+                  O obxectivo é unha referencia que decides ti. O saldo só aparece cando rexistras un valor real; non o
+                  calculamos a partir dos ingresos, nin o duplicamos como gasto.
+                </p>
+                <div class="v10-foot">
+                  <button class="btn" data-v10-close="v10HouseDialog" type="button">Cancelar</button
+                  ><button class="btn primary" type="submit">Gardar aforro</button>
+                </div>
+              </form>
+            </div>
+          </dialog>
+
+          <section class="view" data-view="axustes">
+            <p class="lead">Todo funciona offline. No PC de oficina, exporta a túa copia privada.</p>
+            <div class="stack">
+              <div class="panel" id="appearancePanel">
+                <div class="heading"><h2>Aparencia</h2></div>
+                <div aria-label="Tema" class="segmented" role="radiogroup">
+                  <button aria-pressed="true" data-theme-choice="system" type="button">Sistema</button>
+                  <button aria-pressed="false" data-theme-choice="light" type="button">Claro</button>
+                  <button aria-pressed="false" data-theme-choice="dark" type="button">Escuro</button>
+                </div>
+              </div>
+              <div class="panel">
+                <div class="heading">
+                  <h2>Gardado local</h2>
+                  <span class="pill pending" id="storagePill">Desactivado</span>
+                </div>
+                <label class="switchline" style="font-size: 15px"
+                  ><input id="saveLocal" type="checkbox" /> Garda os datos neste navegador</label
+                >
+                <p class="desc" style="margin: 12px 0 0">
+                  O gardado pode estar activo se xa hai datos locais (ou referencias precargadas). Pausalo non borra a
+                  última copia válida; podes eliminala por separado, con confirmación, no panel de integridade. O
+                  gardado local non equivale a cifrado. Nun PC compartido, non gardes datos reais.
+                </p>
+              </div>
+              <div class="panel" id="v97IntegrityPanel">
+                <div class="heading">
+                  <h2>Integridade e recuperación</h2>
+                  <span class="pill verified">Protección de datos</span>
+                </div>
+                <p class="desc" id="v97StorageStatus" role="status">Comprobando gardado local…</p>
+                <div class="toolrow">
+                  <button class="btn" id="v97VerifyButton" type="button">Verificar rexistros</button
+                  ><button class="btn" id="v97RecoverButton" type="button">Recuperar versión anterior</button
+                  ><button class="btn" id="v97RecoverCurrent" type="button">Recuperar última copia</button
+                  ><button class="btn" disabled="" id="v97UndoRestore" type="button">Desfacer restauración</button>
+                </div>
+                <p class="desc" id="v97VerifyResult" role="status">
+                  A comprobación é local e non envía datos a ningún servidor. As copias automáticas dependen de
+                  IndexedDB e non están cifradas; comproba a recuperación antes de confiar nela.
+                </p>
+                <p class="desc">
+                  A copia automática non substitúe un ZIP/JSON externo. Unha actualización Android debe instalarse sobre
+                  a anterior, nunca desinstalándoa.
+                </p>
+                <details>
+                  <summary>Privacidade: eliminar a copia gardada neste navegador</summary>
+                  <p class="desc">
+                    Esta acción non elimina os ficheiros ZIP/JSON exportados. Precisa confirmación escrita.
+                  </p>
+                  <button class="btn danger" id="v97EraseLocal" type="button">Borrar copia local (irreversible)</button>
+                </details>
+              </div>
+              <div class="panel">
+                <div class="heading"><h2>Copia exportable</h2></div>
+                <p class="desc">
+                  Na web, exporta un ZIP con rexistros e anexos e un control de integridade; en Android, a exportación
+                  segue sendo JSON cun límite de tamaño. A restauración comproba IDs duplicados e estrutura antes de
+                  pedir confirmación. Comproba sempre que a descarga externa existe.
+                </p>
+                <div class="toolrow">
+                  <button class="btn primary" id="exportBtn">Exportar copia ZIP / JSON</button
+                  ><button class="btn" id="importBtn">Restaurar ZIP / JSON</button
+                  ><input accept=".json,.zip,application/json,application/zip" hidden="" id="importFile" type="file" />
+                </div>
+              </div>
+              <div class="panel">
+                <h2 style="margin-bottom: 12px">Que significa cada estado?</h2>
+                <div class="explain">
+                  <span class="pill verified">Acreditado</span>
+                  <p class="desc">
+                    Importe contrastado cun documento actual ou co saldo consultado hoxe. Un futuro pagamento acreditado
+                    como obrigación non implica que o cargo xa se producise.
+                  </p>
+                </div>
+                <div class="explain">
+                  <span class="pill declared">Declarado</span>
+                  <p class="desc">
+                    Dato anotado por nós, sen comprobante actualizado. Pódese incluír na previsión como hipótese
+                    identificada.
+                  </p>
+                </div>
+                <div class="explain">
+                  <span class="pill pending">Pendente</span>
+                  <p class="desc">Falta confirmar importe, data ou estado. Non entra nos totais por defecto.</p>
+                </div>
+              </div>
+              <div class="panel">
+                <div class="heading"><h2>Reiniciar este plan</h2></div>
+                <p class="desc">
+                  Borra os rexistros e recupera as tres tarefas de comprobación inicial. Exporta unha copia antes.
+                </p>
+                <button class="btn danger" id="resetBtn">Reiniciar con confirmación</button>
+              </div>
+            </div>
+          </section>
+        </main>
+      </div>
+    </div>
+
+    <nav aria-label="Navegación principal" class="tabbar">
+      <button data-nav="inicio" data-tab="inicio" type="button">
+        <svg aria-hidden="true" class="i" viewbox="0 0 24 24">
+          <path d="M4 10.5 12 4l8 6.5V20h-5.5v-5.5h-5V20H4z"></path></svg
+        ><span>Inicio</span>
+      </button>
+      <button data-nav="mes" data-tab="mes" type="button">
+        <svg aria-hidden="true" class="i" viewbox="0 0 24 24">
+          <rect height="15" rx="2" width="16" x="4" y="5"></rect>
+          <path d="M4 9.5h16M9 3v4M15 3v4"></path></svg
+        ><span>Mes</span>
+      </button>
+      <button data-nav="debedas" data-tab="actuais" type="button">
+        <svg aria-hidden="true" class="i" viewbox="0 0 24 24">
+          <rect height="13" rx="2" width="17" x="3.5" y="6"></rect>
+          <path d="M3.5 10.5h17M7.5 15h4"></path></svg
+        ><span>Débedas</span>
+      </button>
+      <button data-nav="morais" data-tab="morais" type="button">
+        <svg aria-hidden="true" class="i" viewbox="0 0 24 24">
+          <circle cx="9" cy="8.5" r="3"></circle>
+          <path d="M3.5 19c.6-3.2 2.8-5 5.5-5s4.9 1.8 5.5 5"></path>
+          <path d="M15.5 5.8a3 3 0 0 1 0 5.4M17.5 14.3c1.6.6 2.7 2.2 3 4.7"></path></svg
+        ><span>Persoas</span>
+      </button>
+      <button aria-haspopup="dialog" data-nav="mais" id="moreBtn" type="button">
+        <svg aria-hidden="true" class="i" viewbox="0 0 24 24"><path d="M5 7h14M5 12h14M5 17h14"></path></svg
+        ><span>Máis</span>
+      </button>
+    </nav>
+
+    <dialog aria-label="Máis seccións" class="sheet" id="moreSheet">
+      <div aria-hidden="true" class="sheet-grip"></div>
+      <ul class="sheet-list">
+        <li>
+          <button data-tab="calendario" type="button">
+            <svg aria-hidden="true" class="i" viewbox="0 0 24 24">
+              <rect height="15" rx="2" width="16" x="4" y="5"></rect>
+              <path d="M4 9.5h16M9 3v4M15 3v4M8 13h2M12 13h2M8 16.5h2"></path></svg
+            ><span>Calendario<small>Próximos 30 días</small></span>
+          </button>
+        </li>
+        <li>
+          <button data-tab="recuperacion" type="button">
+            <svg aria-hidden="true" class="i" viewbox="0 0 24 24">
+              <path d="M4 19.5h16M7 16v-4M11.5 16V8M16 16v-6.5"></path></svg
+            ><span>Análise<small>Conciliación, vivenda, ponte á nómina</small></span>
+          </button>
+        </li>
+        <li>
+          <button data-tab="accions" type="button">
+            <svg aria-hidden="true" class="i" viewbox="0 0 24 24">
+              <rect height="16" rx="3" width="16" x="4" y="4"></rect>
+              <path d="m8.5 12.2 2.4 2.4 4.6-5"></path></svg
+            ><span>Tarefas</span>
+          </button>
+        </li>
+        <li>
+          <button data-tab="datos" type="button">
+            <svg aria-hidden="true" class="i" viewbox="0 0 24 24">
+              <path d="M9 7h11M9 12h11M9 17h11M4.5 7h.01M4.5 12h.01M4.5 17h.01"></path></svg
+            ><span>Rexistros<small>Saldos e movementos</small></span>
+          </button>
+        </li>
+        <li>
+          <button data-tab="axustes" type="button">
+            <svg aria-hidden="true" class="i" viewbox="0 0 24 24">
+              <circle cx="12" cy="12" r="3"></circle>
+              <path
+                d="M12 3.5v2M12 18.5v2M3.5 12h2M18.5 12h2M6 6l1.4 1.4M16.6 16.6 18 18M6 18l1.4-1.4M16.6 7.4 18 6"
+              ></path></svg
+            ><span>Axustes<small>Aparencia e copias</small></span>
+          </button>
+        </li>
+      </ul>
+    </dialog>
+    <div aria-live="polite" class="toast" id="toast" role="status"></div>
+
+    <dialog id="accountDialog">
+      <form id="accountForm" method="dialog">
+        <div class="dlg-head">
+          <h2 id="accountDialogTitle">Engadir saldo</h2>
+          <button aria-label="Pechar" class="close" data-close="accountDialog" type="button">×</button>
+        </div>
+        <div class="dlg-body fields">
+          <input name="id" type="hidden" />
+          <div class="field">
+            <label for="aName">Conta ou tipo de efectivo</label
+            ><input id="aName" maxlength="70" name="name" placeholder="Ex.: Conta persoal" required="" />
+          </div>
+          <div class="field">
+            <label for="aOwner">Titular ou ámbito</label
+            ><select id="aOwner" name="owner">
+              <option>Carlos</option>
+              <option>Katy</option>
+              <option>Casa</option>
+              <option>Por confirmar</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="aRole">Función da conta</label
+            ><select id="aRole" name="role">
+              <option value="principal">CaixaBank · principal</option>
+              <option value="auxiliar">ABANCA · auxiliar (sen saldo central)</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="aAmount">Saldo actual (€)</label
+            ><input id="aAmount" inputmode="decimal" name="amount" placeholder="0,00" required="" />
+          </div>
+          <div class="field">
+            <label for="aDate">Data da comprobación</label><input id="aDate" name="date" required="" type="date" />
+          </div>
+          <div class="field">
+            <label for="aTrust">Fiabilidade</label
+            ><select id="aTrust" name="trust">
+              <option value="acreditado">Acreditado</option>
+              <option value="declarado">Declarado</option>
+              <option value="pendente">Pendente</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="aNotes">Observación (opcional)</label><input id="aNotes" maxlength="300" name="note" />
+          </div>
+        </div>
+        <div class="dlg-foot">
+          <button class="btn" data-close="accountDialog" type="button">Cancelar</button
+          ><button class="btn primary" type="submit">Gardar saldo</button>
+        </div>
+      </form>
+    </dialog>
+    <dialog id="eventDialog">
+      <form id="eventForm" method="dialog">
+        <div class="dlg-head">
+          <h2 id="eventDialogTitle">Engadir movemento</h2>
+          <button aria-label="Pechar" class="close" data-close="eventDialog" type="button">×</button>
+        </div>
+        <div class="dlg-body">
+          <input name="id" type="hidden" /><input name="monthBlock" type="hidden" /><input
+            name="monthTemplateId"
+            type="hidden"
+          />
+
+          <div aria-label="Tipo de movemento" class="segmented type-switch" id="eTypeSwitch" role="group">
+            <button aria-pressed="true" data-type="saida" type="button">Gasto</button>
+            <button aria-pressed="false" data-type="entrada" type="button">Ingreso</button>
+          </div>
+          <div class="field field-amount">
+            <label for="eAmount">Importe (€)</label
+            ><input id="eAmount" inputmode="decimal" name="amount" placeholder="0,00" required="" />
+          </div>
+          <div class="field">
+            <label for="eName">Concepto</label
+            ><input id="eName" maxlength="100" name="name" placeholder="Ex.: Recibo de vivenda" required="" />
+          </div>
+          <div aria-label="Conceptos frecuentes" class="chips" id="eConcepts" role="group">
+            <button data-category="food" data-concept="Supermercado" type="button">Supermercado</button>
+            <button data-category="travel" data-concept="Gasolina" type="button">Gasolina</button>
+            <button data-category="" data-concept="Firu" type="button">Firu</button>
+            <button data-category="" data-concept="Alugueiro" type="button">Alugueiro</button>
+          </div>
+          <div class="field">
+            <label for="eDate">Data real ou prevista no banco</label
+            ><input id="eDate" name="date" required="" type="date" />
+          </div>
+          <div class="field">
+            <label for="ePaid">Estado</label
+            ><select id="ePaid" name="done">
+              <option value="no">Pendente</option>
+              <option value="yes">Xa reflectido no saldo</option>
+            </select>
+          </div>
+          <details class="fold" id="eMore">
+            <summary>Máis datos</summary>
+            <div class="fold-body fields" id="eMoreBody">
+              <div class="field sr-only">
+                <label for="eType">Tipo</label
+                ><select id="eType" name="type">
+                  <option value="saida">Pagamento</option>
+                  <option value="entrada">Cobro</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="eBudgetMonth">Mes ao que pertence no orzamento</label
+                ><input id="eBudgetMonth" name="budgetMonth" required="" type="month" /><small class="form-help"
+                  >Ex.: nómina cobrada 30/11 → orzamento de decembro. Non modifica a data do banco.</small
+                >
+              </div>
+              <div class="field">
+                <label for="eBudgetCategory">Descontar da reserva estimada</label
+                ><select id="eBudgetCategory" name="budgetCategory">
+                  <option value="">Non aplicar a reservas</option>
+                  <option value="food">Alimentación</option>
+                  <option value="travel">Gasolina / transporte</option>
+                  <option value="other">Saúde e outros básicos</option></select
+                ><small class="form-help"
+                  >Para descontar unha compra da reserva estimada, elixe a súa categoría. Non dupliques compras xa
+                  incluídas nun cargo MyCard.</small
+                >
+              </div>
+              <div class="field">
+                <label for="eSource">Conta relacionada</label
+                ><select id="eSource" name="accountSource">
+                  <option value="caixabank">CaixaBank · principal</option>
+                  <option value="abanca">ABANCA · pagamento auxiliar</option>
+                  <option value="outro">Por confirmar / outra</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="eOwner">Ámbito</label
+                ><select id="eOwner" name="owner">
+                  <option>Casa</option>
+                  <option>Carlos</option>
+                  <option>Katy</option>
+                  <option>Por confirmar</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="eTrust">Fiabilidade</label
+                ><select id="eTrust" name="trust">
+                  <option value="acreditado">Acreditado</option>
+                  <option value="declarado">Declarado</option>
+                  <option value="pendente">Pendente</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="eGroup">Prioridade</label
+                ><select id="eGroup" name="group">
+                  <option value="esencial">Esencial</option>
+                  <option value="administrativo">AEAT / Xudicial</option>
+                  <option value="financeiro">Débeda / Financeiro</option>
+                  <option value="outro">Outro</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="eNote">Observación e fonte (opcional)</label
+                ><textarea
+                  id="eNote"
+                  maxlength="700"
+                  name="note"
+                  placeholder="Ex.: Recibo consultado na app do banco"
+                ></textarea>
+              </div>
+            </div>
+          </details>
+        </div>
+        <div class="dlg-foot">
+          <button class="btn" data-close="eventDialog" type="button">Cancelar</button
+          ><button class="btn danger" hidden="" id="deleteEventFromDialog" type="button">Borrar movemento</button
+          ><button class="btn primary" type="submit">Gardar movemento</button>
+        </div>
+      </form>
+    </dialog>
+    <dialog id="taskDialog">
+      <form id="taskForm" method="dialog">
+        <div class="dlg-head">
+          <h2 id="taskDialogTitle">Nova actuación</h2>
+          <button aria-label="Pechar" class="close" data-close="taskDialog" type="button">×</button>
+        </div>
+        <div class="dlg-body">
+          <input name="id" type="hidden" />
+          <div class="field">
+            <label for="tTitle">Que temos que facer?</label
+            ><input id="tTitle" maxlength="150" name="title" placeholder="Ex.: Confirmar o cargo de..." required="" />
+          </div>
+          <div class="field" style="margin-top: 12px">
+            <label for="tNote">Como saberemos que está feito?</label
+            ><textarea id="tNote" maxlength="500" name="note"></textarea>
+          </div>
+        </div>
+        <div class="dlg-foot">
+          <button class="btn" data-close="taskDialog" type="button">Cancelar</button
+          ><button class="btn primary" type="submit">Gardar tarefa</button>
+        </div>
+      </form>
+    </dialog>
+    <dialog class="case-dialog" id="currentDebtDialog">
+      <form id="currentDebtForm">
+        <div class="dlg-head">
+          <div><h2 id="currentDebtTitle">Ficha de obrigación</h2></div>
+          <button aria-label="Pechar" class="close" data-close="currentDebtDialog" type="button">×</button>
+        </div>
+        <div aria-live="polite" class="case-read-view" id="currentReadView"></div>
+        <div class="dlg-body fields">
+          <input name="id" type="hidden" />
+          <div class="two">
+            <div class="field"><label>Entidade / concepto</label><input maxlength="100" name="name" required="" /></div>
+            <div class="field">
+              <label>Importe base da auditoría (€) · pode non ser saldo vivo</label
+              ><input inputmode="decimal" name="amount" required="" />
+            </div>
+          </div>
+          <div class="two">
+            <div class="field">
+              <label>Titular</label
+              ><select name="owner">
+                <option>Carlos</option>
+                <option>Katy</option>
+                <option>Casa</option>
+                <option>Por confirmar</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>Tipo de obrigación</label
+              ><select name="kind">
+                <option>Microcrédito</option>
+                <option>Préstamo</option>
+                <option>Tarxeta</option>
+                <option>Financiamento</option>
+                <option>AEAT</option>
+                <option>Outra</option>
+              </select>
+            </div>
+          </div>
+          <div class="two">
+            <div class="field">
+              <label>Natureza da fonte</label
+              ><select name="confidence">
+                <option value="declarado">Declarado por ti · pendente de contraste</option>
+                <option value="documental">Documento / extracto con data concreta</option>
+                <option value="captura">Captura con data</option>
+                <option value="verificado_actual">Saldo actual certificado pola entidade</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>Estado rexistrado</label
+              ><select name="status">
+                <option value="por_verificar">Por verificar</option>
+                <option value="en_xestion">En xestión / negociación</option>
+                <option value="pagada">Pagada, anotación persoal</option>
+                <option value="arquivada">Arquivada, sen conclusión legal</option>
+              </select>
+            </div>
+          </div>
+          <div class="two">
+            <div class="field"><label>Última comprobación real</label><input name="checkedAt" type="date" /></div>
+            <div class="field"><label>Vencemento acreditado (opcional)</label><input name="due" type="date" /></div>
+          </div>
+          <div class="debt-breakdown-edit">
+            <div class="case-edit-title">Desglose incluído no total · opcional</div>
+            <p class="small muted">
+              Só introduce valores comprobados. As casas baleiras significan «descoñecido», non 0 €. O desglose non se
+              suma outra vez á base.
+            </p>
+            <div class="three">
+              <div class="field">
+                <label>Principal (€)</label><input inputmode="decimal" name="principal" placeholder="Sen desglosar" />
+              </div>
+              <div class="field">
+                <label>Xuros (€)</label><input inputmode="decimal" name="interest" placeholder="Sen desglosar" />
+              </div>
+              <div class="field">
+                <label>Comisións / recargas (€)</label
+                ><input inputmode="decimal" name="fees" placeholder="Sen desglosar" />
+              </div>
+            </div>
+          </div>
+          <div class="field">
+            <label>Notas, referencias e seguinte paso (edición)</label
+            ><textarea maxlength="4000" name="notes" rows="4"></textarea>
+          </div>
+          <div class="attachments-panel">
+            <div class="attach-top">
+              <div>
+                <div class="case-edit-title">Documentos da obrigación</div>
+                <p class="small muted">Ficheiros incorporados á copia ZIP.</p>
+              </div>
+              <button class="btn" id="currentAttachBtn" type="button">Engadir anexos</button
+              ><input
+                accept=".pdf,.jpg,.jpeg,.png,.webp,.txt,.doc,.docx"
+                hidden=""
+                id="currentAttachFiles"
+                multiple=""
+                type="file"
+              />
+            </div>
+            <div class="attachment-grid" id="currentAttachList"></div>
+            <p class="attach-note" id="currentAttachHint">Exporta unha copia ZIP antes de pechar.</p>
+          </div>
+          <div class="note warn">
+            Un cambio a «pagada» ou «arquivada» non equivale a certificado de saldo cero. Acreditar a extinción require
+            documentos e, se procede, revisión xurídica.
+          </div>
+        </div>
+        <div class="dlg-foot">
+          <button class="btn" data-close="currentDebtDialog" type="button">Cancelar</button
+          ><button class="btn primary" type="submit">Gardar ficha</button>
+        </div>
+      </form>
+    </dialog>
+    <dialog class="case-dialog" id="installmentDialog">
+      <form id="installmentForm">
+        <div class="dlg-head">
+          <div>
+            <div class="eyebrow">CAIXABANK · PLAN CONTRACTUAL</div>
+            <h2>Confirmar cota pagada</h2>
+          </div>
+          <button aria-label="Pechar" class="close" data-close="installmentDialog" type="button">×</button>
+        </div>
+        <div class="dlg-body">
+          <p class="loan-pay-intro" id="installmentIntro"></p>
+          <div class="field">
+            <label for="installmentDate">Data real na que se pagou</label
+            ><input id="installmentDate" required="" type="date" />
+          </div>
+          <div class="field">
+            <label for="installmentAmount">Importe efectivamente pagado (€)</label
+            ><input id="installmentAmount" inputmode="decimal" required="" />
+          </div>
+          <div class="field">
+            <label for="installmentMethod">Medio de pagamento</label
+            ><select id="installmentMethod">
+              <option>Domiciliación</option>
+              <option>Transferencia</option>
+              <option>Tarxeta</option>
+              <option>Efectivo</option>
+              <option>Outro</option>
+            </select>
+          </div>
+          <p class="loan-disclaimer">
+            Só confirma un cargo realizado. Esta marca crea un apunte no historial da débeda; non crea outra saída
+            bancaria nin desconta por segunda vez o calendario.
+          </p>
+        </div>
+        <div class="dlg-foot">
+          <button class="btn" data-close="installmentDialog" type="button">Cancelar</button
+          ><button class="btn primary" type="submit">Confirmar pagamento</button>
+        </div>
+      </form>
+    </dialog>
+    <dialog class="case-dialog" id="moralDebtDialog">
+      <form id="moralDebtForm">
+        <div class="dlg-head">
+          <div><h2 id="moralDebtTitle">Ficha de obrigación</h2></div>
+          <button aria-label="Pechar" class="close" data-close="moralDebtDialog" type="button">×</button>
+        </div>
+        <div aria-live="polite" class="case-read-view" id="moralReadView"></div>
+        <div class="dlg-body fields">
+          <input name="id" type="hidden" />
+          <div class="two">
+            <div class="field"><label>Persoa / compromiso</label><input maxlength="100" name="name" required="" /></div>
+            <div class="field">
+              <label>Referencia orientativa (€) · opcional</label
+              ><input inputmode="decimal" name="amount" placeholder="Sen cifra · non poñas cero" />
+            </div>
+          </div>
+          <div class="field">
+            <label>Natureza da cifra</label
+            ><select name="amountBasis">
+              <option value="orientativo">Estimación histórica · non certificada</option>
+              <option value="acordado">Acordo persoal anotado</option>
+              <option value="sen_importe">Sen cifra</option>
+            </select>
+          </div>
+          <div class="two">
+            <div class="field">
+              <label>Titular</label
+              ><select name="owner">
+                <option>Carlos</option>
+                <option>Katy</option>
+                <option>Casa</option>
+                <option>Por confirmar</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>Tipo de obrigación</label
+              ><select name="kind">
+                <option>Detalle</option>
+                <option>Favor</option>
+                <option>Devolución de ben</option>
+                <option>Compromiso persoal</option>
+                <option>Cartos pendentes</option>
+                <option>Outro</option>
+              </select>
+            </div>
+          </div>
+          <div class="two">
+            <div class="field">
+              <label>Fonte / confianza da referencia</label
+              ><select name="confidence">
+                <option value="declarado">Declarado por ti · pendente de contraste</option>
+                <option value="documental">Documento / extracto con data concreta</option>
+                <option value="captura">Captura con data</option>
+                <option value="verificado_actual">Saldo actual certificado pola entidade</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>Estado rexistrado</label
+              ><select name="status">
+                <option value="por_verificar">Por verificar</option>
+                <option value="en_xestion">En xestión / negociación</option>
+                <option value="pagada">Pagada, anotación persoal</option>
+                <option value="arquivada">Arquivada, sen conclusión legal</option>
+              </select>
+            </div>
+          </div>
+          <div class="two">
+            <div class="field"><label>Última comprobación real</label><input name="checkedAt" type="date" /></div>
+            <div class="field"><label>Data para revisalo (opcional)</label><input name="due" type="date" /></div>
+          </div>
+          <div class="debt-breakdown-edit">
+            <div class="case-edit-title">Desglose da referencia · só cando existan datos comprobados</div>
+            <p class="small muted">
+              Só introduce valores comprobados. As casas baleiras significan «descoñecido», non 0 €. O desglose non se
+              suma outra vez á base.
+            </p>
+            <div class="three">
+              <div class="field">
+                <label>Principal (€)</label><input inputmode="decimal" name="principal" placeholder="Sen desglosar" />
+              </div>
+              <div class="field">
+                <label>Xuros (€)</label><input inputmode="decimal" name="interest" placeholder="Sen desglosar" />
+              </div>
+              <div class="field">
+                <label>Comisións / recargas (€)</label
+                ><input inputmode="decimal" name="fees" placeholder="Sen desglosar" />
+              </div>
+            </div>
+          </div>
+          <div class="field">
+            <label>Notas, referencias e seguinte paso (edición)</label
+            ><textarea maxlength="4000" name="notes" rows="4"></textarea>
+          </div>
+          <div class="attachments-panel">
+            <div class="attach-top">
+              <div>
+                <div class="case-edit-title">Documentos e xustificantes do compromiso</div>
+                <p class="small muted">Ficheiros incorporados á copia ZIP.</p>
+              </div>
+              <button class="btn" id="moralAttachBtn" type="button">Engadir anexos</button
+              ><input
+                accept=".pdf,.jpg,.jpeg,.png,.webp,.txt,.doc,.docx"
+                hidden=""
+                id="moralAttachFiles"
+                multiple=""
+                type="file"
+              />
+            </div>
+            <div class="attachment-grid" id="moralAttachList"></div>
+            <p class="attach-note" id="moralAttachHint">Exporta unha copia ZIP antes de pechar.</p>
+          </div>
+          <div class="note warn">
+            Un importe orientativo NON equivale a unha débeda legal. «Resolto» e «Arquivado» son decisións persoais e
+            non modifican os saldos bancarios.
+          </div>
+        </div>
+        <div class="dlg-foot">
+          <button class="btn" data-close="moralDebtDialog" type="button">Cancelar</button
+          ><button class="btn primary" type="submit">Gardar compromiso</button>
+        </div>
+      </form>
+    </dialog>
+    <dialog id="moralPaymentDialog">
+      <form id="moralPaymentForm">
+        <div class="dlg-head">
+          <div>
+            <h2>Rexistrar compensación</h2>
+            <p class="moral-signal" id="moralPaymentLabel"></p>
+          </div>
+          <button aria-label="Pechar" class="close" data-moral-close="moralPaymentDialog" type="button">×</button>
+        </div>
+        <div class="dlg-body fields">
+          <div class="two">
+            <div class="field">
+              <label>Importe (€)</label><input inputmode="decimal" name="amount" placeholder="0,00" required="" />
+            </div>
+            <div class="field"><label>Data</label><input name="date" required="" type="date" /></div>
+          </div>
+          <div class="field">
+            <label>Medio</label
+            ><select name="method">
+              <option>Transferencia</option>
+              <option>Efectivo</option>
+              <option>Tarxeta</option>
+              <option>Domiciliación</option>
+              <option>Outro</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Nota / que se compensou</label><textarea maxlength="1000" name="note" rows="3"></textarea>
+          </div>
+          <div class="note warn">É un apunte persoal. Non modifica a conta bancaria nin entra na débeda comercial.</div>
+        </div>
+        <div class="dlg-foot">
+          <button class="btn" data-moral-close="moralPaymentDialog" type="button">Cancelar</button
+          ><button class="btn primary" type="submit">Gardar compensación</button>
+        </div>
+      </form>
+    </dialog>
+    <dialog class="case-dialog" id="debtDialog">
+      <form id="debtForm">
+        <div class="dlg-head">
+          <div><h2 id="debtDialogTitle">Expediente</h2></div>
+          <button aria-label="Pechar" class="close" data-close="debtDialog" type="button">×</button>
+        </div>
+        <div aria-live="polite" class="case-read-view" id="historicReadView"></div>
+        <div class="dlg-body debt-full">
+          <input name="caseId" type="hidden" />
+          <div class="dossier-section" id="debtDocSummary"></div>
+          <div class="case-edit-box">
+            <div class="case-edit-title">Modificar expediente · non substitúe a investigación</div>
+            <div class="two">
+              <div class="field">
+                <label for="caseState">Situación que anotas ti</label
+                ><select id="caseState" name="caseState">
+                  <option value="aberto">En revisión</option>
+                  <option value="pagada">Pagada (declarada por min)</option>
+                  <option value="morta">Morta / inactiva (etiqueta persoal)</option>
+                  <option value="extinta">Extinción acreditada (pendente validar)</option>
+                  <option value="sen_conclusion">Aparcada sen conclusión</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="reviewStatus">Documentación</label
+                ><select id="reviewStatus" name="reviewStatus">
+                  <option value="sen_revisar">Por revisar</option>
+                  <option value="solicitada">Solicitada</option>
+                  <option value="recibida">Recibida</option>
+                  <option value="asesoria">En análise profesional</option>
+                  <option value="resolto">Resolto con xustificante</option>
+                </select>
+              </div>
+            </div>
+            <div class="two">
+              <div class="field"><label>Data da última comprobación</label><input name="reviewDate" type="date" /></div>
+              <div class="field">
+                <label>Referencia de proba</label
+                ><input maxlength="160" name="docReference" placeholder="Ex.: acordo, xustificante, certificado" />
+              </div>
+            </div>
+            <div class="debt-breakdown-edit">
+              <div class="case-edit-title">Base e desglose · opcionais</div>
+              <p class="small muted">
+                Se tes un saldo actualizado, introdúceo como nova referencia. Se non, mantemos o importe histórico
+                orientativo. Os outros campos son partes do total e non se suman automaticamente.
+              </p>
+              <div class="field">
+                <label>Saldo base para o seguimento (€)</label
+                ><input
+                  inputmode="decimal"
+                  name="baseBalance"
+                  placeholder="Sen nova base · utilizar importe histórico"
+                />
+              </div>
+              <div class="three">
+                <div class="field">
+                  <label>Principal (€)</label><input inputmode="decimal" name="principal" placeholder="Descoñecido" />
+                </div>
+                <div class="field">
+                  <label>Xuros (€)</label><input inputmode="decimal" name="interest" placeholder="Descoñecidos" />
+                </div>
+                <div class="field">
+                  <label>Comisións (€)</label><input inputmode="decimal" name="fees" placeholder="Descoñecidas" />
+                </div>
+              </div>
+            </div>
+            <div class="field">
+              <label>Notas e pasos seguintes</label
+              ><textarea
+                maxlength="2200"
+                name="notes"
+                placeholder="Datas de contacto, pagos, documentos e o seguinte paso"
+              ></textarea>
+            </div>
+            <label class="archive-switch"
+              ><input id="archiveCase" name="archived" type="checkbox" /><span
+                ><strong>Mover á sección Arquivadas</strong
+                ><small>Retírase da lista principal pero conserva toda a ficha e os anexos.</small></span
+              ></label
+            >
+          </div>
+          <div class="attachments-panel">
+            <div class="attach-top">
+              <div>
+                <div class="case-edit-title">Documentos e imaxes</div>
+                <p class="small muted">PDF, JPG, PNG, WEBP, TXT, DOC ou DOCX. Incluídos na copia ZIP.</p>
+              </div>
+              <button class="btn" id="attachBtn" type="button">Engadir ficheiros</button
+              ><input
+                accept=".pdf,.jpg,.jpeg,.png,.webp,.txt,.doc,.docx,application/pdf,image/jpeg,image/png,image/webp,text/plain"
+                hidden=""
+                id="attachFiles"
+                multiple=""
+                type="file"
+              />
+            </div>
+            <div class="attachment-grid" id="attachmentList"></div>
+            <p class="attach-note" id="attachCapacity">Non hai ficheiros engadidos.</p>
+          </div>
+          <details class="case-details">
+            <summary>Investigación da empresa e do risco ▾</summary>
+            <div class="dossier-section" id="debtResearch"></div>
+          </details>
+          <details class="case-details">
+            <summary>Documentación que falta ▾</summary>
+            <div class="dossier-section" id="debtNeeds"></div>
+          </details>
+          <div class="note warn case-disclaimer">
+            «Pagada», «morta» e «extinta» son clasificacións introducidas por ti. Non substitúen o certificado de saldo
+            cero nin unha revisión xurídica. Non ignores notificacións xudiciais.
+          </div>
+        </div>
+        <div class="dlg-foot">
+          <button class="btn" data-close="debtDialog" type="button">Cancelar</button
+          ><button class="btn primary" type="submit">Gardar expediente</button>
+        </div>
+      </form>
+    </dialog>
+    <dialog class="case-dialog payment-dialog" id="paymentDialog">
+      <form id="paymentForm">
+        <div class="dlg-head">
+          <div><h2 id="paymentDialogTitle">Rexistrar pagamento</h2></div>
+          <button aria-label="Pechar" class="close" data-close="paymentDialog" type="button">×</button>
+        </div>
+        <div class="dlg-body fields">
+          <p class="payment-debt-name" id="paymentDebtName"></p>
+          <div class="payment-balance-line">
+            <span>Saldo antes deste rexistro</span><strong class="secret" id="paymentAvailable">—</strong>
+          </div>
+          <div class="two">
+            <div class="field">
+              <label>Operación</label
+              ><select id="paymentMode" name="mode">
+                <option value="partial">Pagamento parcial</option>
+                <option value="full">Pagamento total do saldo de seguimento</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>Importe pagado (€)</label
+              ><input id="paymentAmount" inputmode="decimal" name="amount" placeholder="Ex.: 45,50" required="" />
+            </div>
+          </div>
+          <div class="two">
+            <div class="field"><label>Data do pagamento</label><input name="date" required="" type="date" /></div>
+            <div class="field">
+              <label>Medio utilizado</label
+              ><select name="method">
+                <option value="Transferencia">Transferencia</option>
+                <option value="Tarxeta">Tarxeta</option>
+                <option value="Domiciliación">Domiciliación</option>
+                <option value="Efectivo">Efectivo</option>
+                <option value="Outro">Outro</option>
+              </select>
+            </div>
+          </div>
+          <div class="field">
+            <label>Referencia do xustificante (opcional)</label
+            ><input maxlength="180" name="reference" placeholder="Ex.: recibo, número de operación ou documento" />
+          </div>
+          <div class="field">
+            <label>Nota sobre este pago</label
+            ><textarea
+              maxlength="1000"
+              name="note"
+              placeholder="Acordo, parcela, detalle ou aclaración"
+              rows="2"
+            ></textarea>
+          </div>
+          <div class="field">
+            <label>Engadir xustificante á ficha (opcional)</label
+            ><input
+              accept=".pdf,.jpg,.jpeg,.png,.webp,.txt,.doc,.docx"
+              id="paymentReceipt"
+              name="receipt"
+              type="file"
+            />
+            <div class="small muted">Incorpórase á copia ZIP; non se envía ao banco nin ao acredor.</div>
+          </div>
+          <div class="payment-preview" id="paymentPreview"></div>
+          <div class="note warn">
+            Este botón <strong>rexistra un pagamento que xa fixeches</strong>, non realiza unha transferencia. O saldo
+            resultante é contable e depende do saldo base. Non modifica automaticamente as túas contas bancarias nin o
+            calendario.
+          </div>
+        </div>
+        <div class="dlg-body">
+          <div class="field" hidden="" id="loanPaymentLinkWrap">
+            <label for="loanPaymentInstallment">Asociar á cota do préstamo</label
+            ><select id="loanPaymentInstallment">
+              <option value="">Sen asociar</option>
+            </select>
+          </div>
+        </div>
+        <div class="dlg-foot">
+          <button class="btn" data-close="paymentDialog" type="button">Cancelar</button
+          ><button class="btn primary" type="submit">Confirmar rexistro</button>
+        </div>
+      </form>
+    </dialog>
+    <div class="undo-deleted" hidden="" id="undoDeletedEvent" role="status">
+      <span id="deletedEventMessage">Movemento eliminado.</span
+      ><button class="btn sm primary" id="undoEventDelete" type="button">Desfacer</button
+      ><button class="btn sm" id="dismissDeleted" type="button">Pechar</button>
+    </div>
+    <script src="js/jszip.min.js"></script>
+    <script src="js/seed.js"></script>
+    <script src="js/app.js"></script>
+  </body>
+</html>
